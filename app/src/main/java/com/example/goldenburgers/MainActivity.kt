@@ -4,44 +4,56 @@ import android.os.Bundle
 import androidx.activity.ComponentActivity
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
+import androidx.activity.viewModels
 import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
+import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Surface
+import androidx.compose.runtime.getValue
+import androidx.compose.runtime.collectAsState
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.goldenburgers.ui.theme.GoldenBurgersTheme
+import com.example.goldenburgers.model.GolgerBurguerDatabase
+import com.example.goldenburgers.model.ProductRepository
+import com.example.goldenburgers.model.SessionManager
+import com.example.goldenburgers.model.ThemeManager
+import com.example.goldenburgers.navigation.AppNavigation
+import com.example.goldenburgers.ui.theme.GolgerBurguerTheme
+import com.example.goldenburgers.viewmodel.CatalogViewModel
+import com.example.goldenburgers.viewmodel.CatalogViewModelFactory
 
+
+/**
+ * La actividad principal y único punto de entrada de la aplicación.
+ */
 class MainActivity : ComponentActivity() {
+
+    private val sessionManager by lazy { SessionManager(this) }
+    private val themeManager by lazy { ThemeManager(this) }
+
+    // [ACTUALIZADO] Se le pasa el SessionManager a la factory del CatalogViewModel.
+    private val catalogViewModel: CatalogViewModel by viewModels {
+        val database = GolgerBurguerDatabase.getDatabase(this)
+        val repository = ProductRepository(database.productDao(), database.userDao())
+        CatalogViewModelFactory(repository, sessionManager) // <-- AÑADIDO sessionManager
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
         setContent {
-            GoldenBurgersTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "Android",
-                        modifier = Modifier.padding(innerPadding)
+            val isDarkMode by themeManager.isDarkMode.collectAsState(initial = false)
+
+            GolgerBurguerTheme(darkTheme = isDarkMode) {
+                Surface(
+                    modifier = Modifier.fillMaxSize(),
+                    color = MaterialTheme.colorScheme.background
+                ) {
+                    AppNavigation(
+                        sessionManager = sessionManager,
+                        themeManager = themeManager,
+                        catalogViewModel = catalogViewModel
                     )
                 }
             }
         }
-    }
-}
-
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    GoldenBurgersTheme {
-        Greeting("Android")
     }
 }

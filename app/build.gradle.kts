@@ -2,7 +2,10 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
+    alias(libs.plugins.kotlin.kapt)
+    id("kotlin-kapt")
 }
+
 
 android {
     namespace = "com.example.goldenburgers"
@@ -42,13 +45,15 @@ android {
 }
 
 dependencies {
+    // --- Room ---
+    implementation(libs.androidx.room.runtime)
+    implementation(libs.androidx.room.ktx)
 
 
-
-    // Coil para la carga de imágenes (versión más reciente)
+    // [NUEVO] Coil para la carga de imágenes
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // ViewModel para MVVM en Compose (versión más reciente)
+    // ViewModel para MVVM en Compose
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
 
     // Navigation para la navegación entre pantallas en Compose
@@ -62,6 +67,9 @@ dependencies {
     // Lifecycle para observar estados de forma segura en Compose
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
 
+    implementation("io.coil-kt:coil-compose:2.5.0")
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -71,7 +79,10 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    //Test
+    // Location Services
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
+    // --- Test Dependencies ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -79,8 +90,4 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
-    // Dependencias para ubicacion
-    implementation("com.google.android.gms:play-services-location:21.0.1")
-
-
 }

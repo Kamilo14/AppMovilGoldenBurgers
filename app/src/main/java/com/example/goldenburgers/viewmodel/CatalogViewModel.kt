@@ -21,7 +21,7 @@ data class CartItem(
 )
 
 /**
- * [ACTUALIZADO] El estado ahora incluye el nombre del usuario logueado.
+ * El estado ahora incluye el nombre del usuario logueado.
  */
 data class CatalogUiState(
     val products: List<Producto> = emptyList(),

@@ -1,7 +1,5 @@
 package com.example.goldenburgers.viewmodel
 
-
-
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
@@ -33,7 +31,7 @@ data class EditProfileUiState(
 )
 
 /**
- * Añadida una función pública para recargar los datos.
+ * [ACTUALIZADO] Añadida una función pública para recargar los datos.
  */
 class EditProfileViewModel(
     private val repository: ProductRepository,
@@ -46,7 +44,7 @@ class EditProfileViewModel(
     // El init ya no carga los datos, se hará desde la pantalla.
 
     /**
-     *  Carga o recarga los datos del usuario actual.
+     * [NUEVO] Carga o recarga los datos del usuario actual.
      * Es pública para que la UI pueda llamarla cuando sea necesario.
      */
     fun loadCurrentUser() {
@@ -79,7 +77,7 @@ class EditProfileViewModel(
         }
     }
 
-    //  Funciones para actualizar los campos del formulario
+    // --- Funciones para actualizar los campos del formulario ---
     fun onFullNameChange(name: String) = _uiState.update { it.copy(fullName = name) }
     fun onPhoneNumberChange(phone: String) = _uiState.update { it.copy(phoneNumber = phone) }
     fun onStreetChange(street: String) = _uiState.update { it.copy(street = street) }
