@@ -2,7 +2,6 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    alias(libs.plugins.kotlin.kapt)
     id("kotlin-kapt")
 }
 
@@ -48,7 +47,7 @@ dependencies {
     // --- Room ---
     implementation(libs.androidx.room.runtime)
     implementation(libs.androidx.room.ktx)
-
+    kapt(libs.androidx.room.compiler)
 
     // [NUEVO] Coil para la carga de imágenes
     implementation("io.coil-kt:coil-compose:2.6.0")

@@ -27,7 +27,7 @@ import com.example.goldenburgers.viewmodel.CatalogViewModel
 import com.example.goldenburgers.viewmodel.toCurrencyFormat
 
 /**
- * [ACTUALIZADO] Se elimina la TopAppBar individual.
+ * Se elimina la TopAppBar individual.
  */
 @Composable
 fun CartScreen(catalogViewModel: CatalogViewModel) {
