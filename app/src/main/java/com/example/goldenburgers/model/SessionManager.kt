@@ -13,8 +13,7 @@ import kotlinx.coroutines.flow.map
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "session_prefs")
 
 /**
- * Gestiona la sesión del usuario.
- * [ACTUALIZADO] Ahora guarda el email del usuario logueado en lugar de un booleano.
+ * Gestion de la sesión del usuario.
  */
 class SessionManager(private val context: Context) {
 

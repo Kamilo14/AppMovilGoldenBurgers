@@ -22,7 +22,7 @@ sealed class BottomNavItem(
     object Home : BottomNavItem(
         title = "Inicio",
         icon = Icons.Default.Home,
-        route = AppScreens.HomeScreen.route // Ruta definida en AppScreens.kt
+        route = AppScreens.HomeScreen.route
     )
 
 
@@ -30,7 +30,7 @@ sealed class BottomNavItem(
     object Favorites : BottomNavItem(
         title = "Favoritos",
         icon = Icons.Default.Favorite,
-        route = AppScreens.FavoritesScreen.route // Ruta definida en AppScreens.kt
+        route = AppScreens.FavoritesScreen.route
     )
 
 
@@ -38,7 +38,7 @@ sealed class BottomNavItem(
     object Cart : BottomNavItem(
         title = "Carrito",
         icon = Icons.Default.ShoppingCart,
-        route = AppScreens.CartScreen.route // Ruta definida en AppScreens.kt
+        route = AppScreens.CartScreen.route
     )
 
 
@@ -46,7 +46,7 @@ sealed class BottomNavItem(
     object Profile : BottomNavItem(
         title = "Perfil",
         icon = Icons.Default.Person,
-        route = AppScreens.ProfileScreen.route // Ruta definida en AppScreens.kt
+        route = AppScreens.ProfileScreen.route
     )
 }
 

@@ -24,45 +24,44 @@ import com.example.goldenburgers.view.*
 import com.example.goldenburgers.viewmodel.*
 
 /**
- * Este es el Composable principal que actúa como el "cerebro" de la navegación de mi app.
+ * Este es el Composable principal
  * Define todas las pantallas disponibles y gestiona la transición entre ellas.
  * También es el responsable de decidir cuál es la primera pantalla que se debe mostrar.
  */
 @Composable
 fun AppNavigation(
-    // Recibo los gestores de sesión y tema desde MainActivity para que su estado
+    // Recibe los gestores de sesión y tema desde MainActivity para que su estado
     // persista durante toda la vida de la aplicación.
     sessionManager: SessionManager,
     themeManager: ThemeManager,
     catalogViewModel: CatalogViewModel
 ) {
-    // Creo el NavController principal, que usaré para todas las operaciones de navegación.
+    // Crea el NavController principal para todas las operaciones de navegación.
     val navController = rememberNavController()
 
     // --- Creación de ViewModels ---
-    // Creo las instancias de mis ViewModels aquí, en un nivel alto del árbol de Composable.
-    // Utilizo sus respectivas Factories para inyectar las dependencias que necesitan (como el repositorio).
-    // Esta es una pieza clave de mi arquitectura MVVM.
+    // Creación de las instancias de ViewModels, en un nivel alto del árbol de Composable.
+    // Se utilizan sus respectivas Factories para inyectar las dependencias que necesitan (como el repositorio).
     val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(catalogViewModel.repository))
     val registerViewModel: RegisterViewModel = viewModel(factory = RegisterViewModelFactory(catalogViewModel.repository))
     val editProfileViewModel: EditProfileViewModel = viewModel(factory = EditProfileViewModelFactory(catalogViewModel.repository, sessionManager))
 
     // --- Lógica de Arranque ---
-    // Observo el Flow del SessionManager para saber si hay un usuario logueado.
-    // Uso un String vacío como estado inicial para poder diferenciar entre tres estados:
+    // Observa el Flow del SessionManager para saber si hay un usuario logueado.
+    // Se usa un String vacío como estado inicial para poder diferenciar entre tres estados:
     // 1. "" (vacío): La app está cargando y aún no sabemos si hay sesión.
     // 2. null: La carga terminó y se confirmó que NO hay sesión.
     // 3. "user@email.com": La carga terminó y SÍ hay un usuario logueado.
     val loggedInUserEmail by sessionManager.loggedInUserEmailFlow.collectAsState(initial = "")
 
-    // Mientras el estado sea el inicial (String vacío), muestro un indicador de carga.
+    // Mientras el estado sea el inicial (String vacío), muestra un indicador de carga.
     val isLoadingSession = loggedInUserEmail == ""
     if (isLoadingSession) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        return // No dibujo el resto de la app hasta que la sesión se haya resuelto.
+        return // No dibuja el resto de la app hasta que la sesión se haya resuelto.
     }
 
-    // Una vez resuelta la sesión, decido cuál será la primera pantalla que verá el usuario.
+    // Una vez resuelta la sesión, se decide cuál será la primera pantalla que verá el usuario.
     val startDestination = if (!loggedInUserEmail.isNullOrBlank()) {
         "main_flow" // Si hay un usuario, va directo al flujo principal de la app.
     } else {
@@ -70,16 +69,16 @@ fun AppNavigation(
     }
 
     // --- Grafo de Navegación ---
-    // NavHost es el contenedor que alojará todas las pantallas de mi aplicación.
+    // NavHost es el contenedor que alojará todas las pantallas de la aplicación.
     NavHost(navController = navController, startDestination = startDestination) {
-        // Defino unas animaciones de transición estándar para que el cambio entre pantallas sea fluido.
+        // Se define unas animaciones de transición estándar para que el cambio entre pantallas sea fluido.
         val slideDuration = 300
         val slideIn = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(slideDuration))
         val slideOut = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(slideDuration))
         val popIn = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(slideDuration))
         val popOut = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(slideDuration))
 
-        // Aquí defino cada una de mis pantallas como un destino de navegación.
+        // SE define cada una de las pantallas como un destino de navegación.
         composable(AppScreens.WelcomeScreen.route) { WelcomeScreen(navController) }
         composable(AppScreens.LoginScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
             LoginScreen(navController, sessionManager, loginViewModel)
