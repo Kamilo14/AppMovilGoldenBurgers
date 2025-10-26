@@ -14,7 +14,6 @@ val GolgerGreenSuccess = Color(0xFF4CAF50) // Verde para mensajes de éxito
 
 
 // --- COLORES DE GOLGER BURGUER (MODO OSCURO) ---
-// (Puedes definir colores específicos para el modo oscuro si lo deseas)
 val GolgerDarkBackground = Color(0xFF121212)
 val GolgerDarkSurface = Color(0xFF1E1E1E)
 val GolgerYellowDark = Color(0xFFFFD600)
