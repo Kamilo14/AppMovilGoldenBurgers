@@ -36,7 +36,6 @@ interface ProductDao {
     /**
      * Inserta una lista de productos en la base de datos.
      * Si un producto con la misma clave primaria (id) ya existe, será reemplazado.
-     * Esta función es 'suspend' porque puede ser una operación larga y debe ejecutarse en segundo plano.
      * @param products La lista de productos a insertar.
      */
     @Insert(onConflict = OnConflictStrategy.REPLACE)
@@ -45,7 +44,6 @@ interface ProductDao {
 
     /**
      * Actualiza el estado de 'es_favorito' de un producto específico, identificado por su ID.
-     * Esta función es 'suspend' porque es una operación de escritura en la base de datos.
      * @param productId El ID del producto a actualizar.
      * @param isFavorite El nuevo estado de favorito (true o false).
      */
@@ -56,7 +54,6 @@ interface ProductDao {
     /**
      * Cuenta el número total de productos en la tabla.
      * Se utiliza para verificar si la base de datos necesita ser poblada inicialmente.
-     * Esta función es 'suspend' porque accede a la base de datos.
      * @return El número total de productos en la tabla.
      */
     @Query("SELECT COUNT(*) FROM productos")

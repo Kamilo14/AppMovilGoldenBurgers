@@ -32,7 +32,7 @@ class ThemeManager(private val context: Context) {
      * @param isDarkMode `true` para activar el modo oscuro, `false` para desactivarlo.
      */
     suspend fun setDarkMode(isDarkMode: Boolean) {
-        // [CORREGIDO] Se añade el nombre del parámetro 'preferences ->' al lambda.
+        // Se añade el nombre del parámetro 'preferences ->' al lambda.
         context.themeDataStore.edit { preferences ->
             preferences[isDarkModeKey] = isDarkMode
         }

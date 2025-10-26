@@ -70,7 +70,7 @@ fun GolgerBurguerTheme(
 
     MaterialTheme(
         colorScheme = colorScheme,
-        typography = Typography, // 'Typography' viene de tu archivo Type.kt
+        typography = Typography, // Del archivo Type.kt
         content = content
     )
 }
