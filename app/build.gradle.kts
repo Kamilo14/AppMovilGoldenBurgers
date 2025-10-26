@@ -42,6 +42,26 @@ android {
 }
 
 dependencies {
+
+
+
+    // Coil para la carga de imágenes (versión más reciente)
+    implementation("io.coil-kt:coil-compose:2.6.0")
+
+    // ViewModel para MVVM en Compose (versión más reciente)
+    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
+
+    // Navigation para la navegación entre pantallas en Compose
+    implementation("androidx.navigation:navigation-compose:2.7.7")
+
+    // DataStore para persistencia de datos local
+    implementation("androidx.datastore:datastore-preferences:1.1.1")
+
+    implementation("androidx.compose.material:material-icons-extended")
+
+    // Lifecycle para observar estados de forma segura en Compose
+    implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
+
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -50,6 +70,8 @@ dependencies {
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
+
+    //Test
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -57,4 +79,8 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    // Dependencias para ubicacion
+    implementation("com.google.android.gms:play-services-location:21.0.1")
+
+
 }
