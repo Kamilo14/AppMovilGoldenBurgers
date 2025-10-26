@@ -1,7 +1,5 @@
 package com.example.goldenburgers.viewmodel
 
-package com.example.goldenburgers.viewmodel
-
 import android.util.Log
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

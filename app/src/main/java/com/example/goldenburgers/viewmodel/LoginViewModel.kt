@@ -22,7 +22,7 @@ data class LoginUiState(
 
 /**
  * ViewModel para la pantalla de Login.
- * [ACTUALIZADO] Ahora recibe el repositorio para validar las credenciales del usuario.
+ *  Ahora recibe el repositorio para validar las credenciales del usuario.
  */
 class LoginViewModel(private val repository: ProductRepository) : ViewModel() {
 

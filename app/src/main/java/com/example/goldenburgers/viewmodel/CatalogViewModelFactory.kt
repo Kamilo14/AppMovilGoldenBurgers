@@ -8,11 +8,11 @@ import com.example.goldenburgers.model.SessionManager
 
 /**
  * Factory para crear instancias de CatalogViewModel.
- * [ACTUALIZADO] Ahora también provee el SessionManager.
+ * Ahora también provee el SessionManager.
  */
 class CatalogViewModelFactory(
     private val repository: ProductRepository,
-    private val sessionManager: SessionManager // <-- AÑADIDO
+    private val sessionManager: SessionManager //
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(CatalogViewModel::class.java)) {
