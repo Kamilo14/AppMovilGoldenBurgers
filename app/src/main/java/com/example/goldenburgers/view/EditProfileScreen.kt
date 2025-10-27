@@ -197,6 +197,6 @@ fun EditProfileScreen(
 private fun createImageUri(context: Context): Uri {
     val timeStamp = SimpleDateFormat("yyyyMMdd_HHmmss", Locale.US).format(Date())
     val imageFile = File.createTempFile("JPEG_${timeStamp}_", ".jpg", context.cacheDir)
-    return FileProvider.getUriForFile(context, "${context.packageName}.provider", imageFile)
+    return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
 }
 

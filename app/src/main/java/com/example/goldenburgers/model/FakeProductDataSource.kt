@@ -33,7 +33,7 @@ object FakeProductDataSource {
             id = 4,
             nombre = "Hamburguesa Italiana",
             descripcion = "Hamburguesa 120g, Palta, tomate y mayonesa.",
-            precio = 2000.0, // Nota: Este precio parece bajo para una hamburguesa, revísalo si es necesario
+            precio = 5990.0, // Nota: Este precio parece bajo para una hamburguesa, revísalo si es necesario
             imagenReferencia = R.drawable.italiana, // Referencia local
             categoria = "Hamburguesa"
         ),

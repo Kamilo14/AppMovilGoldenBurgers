@@ -7,6 +7,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.*
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -42,6 +43,13 @@ fun MainScreen(
     // Esto me permite tener una navegación independiente para las pestañas.
     val bottomBarNavController = rememberNavController()
     val uiState by catalogViewModel.uiState.collectAsStateWithLifecycle()
+
+    // Con LaunchedEffect(Unit), esta corrutina se ejecutará una vez cuando
+    // MainScreen entre en la composición. Llamamos a loadUserName() para
+    // asegurar que la información del usuario esté actualizada.
+    LaunchedEffect(Unit) {
+        catalogViewModel.loadUserName()
+    }
 
     // Scaffold es el componente de Material 3 que me da la estructura básica de una pantalla
     // (barra superior, barra inferior, contenido, etc.).

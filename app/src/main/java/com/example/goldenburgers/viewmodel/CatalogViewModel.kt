@@ -53,7 +53,7 @@ class CatalogViewModel(
     /**
      * [NUEVO] Carga el nombre del usuario actual y lo pone en el estado.
      */
-    private fun loadUserName() {
+    fun loadUserName() {
         viewModelScope.launch {
             val userEmail = sessionManager.loggedInUserEmailFlow.first()
             if (userEmail != null) {
