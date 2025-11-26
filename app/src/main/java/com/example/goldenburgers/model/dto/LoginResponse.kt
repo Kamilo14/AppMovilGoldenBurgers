@@ -6,14 +6,14 @@ import com.google.gson.annotations.SerializedName
  * DTO para respuesta de login desde API Gateway
  */
 data class LoginResponse(
-    @SerializedName("token")
-    val token: String,
+    @SerializedName("internalToken")
+    val internalToken: String,
 
-    @SerializedName("refreshToken")
-    val refreshToken: String,
+    @SerializedName("user")
+    val user: UserInfoDTO,
 
-    @SerializedName("usuario")
-    val usuario: UserInfoDTO
+    @SerializedName("expiresIn")
+    val expiresIn: Long
 )
 
 /**

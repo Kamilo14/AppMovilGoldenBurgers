@@ -6,7 +6,7 @@ import com.example.goldenburgers.model.data.DireccionCliente
 import com.example.goldenburgers.model.dto.ActualizarPerfilClienteRequest
 import com.example.goldenburgers.model.dto.CrearDireccionRequest
 import com.example.goldenburgers.model.mapper.toDomain
-import com.example.goldenburgers.network.RetrofitClient
+import com.example.goldenburgers.service.RetrofitClient
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -67,25 +67,26 @@ class ClienteRepository {
     }
 
     /**
-     * Actualizar perfil del cliente
+     * Actualizar propio perfil del cliente autenticado
      *
-     * @param idCliente ID del cliente
      * @param nombreCliente Nombre del cliente
+     * @param email Email del cliente
      * @param telefonoCliente Teléfono del cliente (opcional)
      * @return Cliente actualizado
      */
     suspend fun actualizarPerfil(
-        idCliente: Long,
         nombreCliente: String,
+        email: String,
         telefonoCliente: String?
     ): Result<Cliente> {
         return try {
             val request = ActualizarPerfilClienteRequest(
                 nombreCliente = nombreCliente,
+                email = email,
                 telefonoCliente = telefonoCliente
             )
 
-            val response = gestionUsuarioApi.actualizarPerfilCliente(idCliente, request)
+            val response = gestionUsuarioApi.actualizarPerfil(request)
 
             if (response.isSuccessful && response.body() != null) {
                 val cliente = response.body()!!.toDomain()
@@ -100,9 +101,9 @@ class ClienteRepository {
     }
 
     /**
-     * Crear nueva dirección para el cliente
+     * Crear nueva dirección para un cliente
      *
-     * @param idCliente ID del cliente
+     * @param idCliente ID del cliente (requerido por backend)
      * @param idCiudad ID de la ciudad
      * @param direccion Dirección completa
      * @param alias Alias de la dirección (opcional)
@@ -122,12 +123,10 @@ class ClienteRepository {
                 alias = alias
             )
 
-            val response = gestionUsuarioApi.crearDireccion(idCliente, request)
+            val response = gestionUsuarioApi.crearDireccion(request)
 
             if (response.isSuccessful && response.body() != null) {
                 val direccionCliente = response.body()!!.toDomain()
-                // Actualizar cliente en caché con la nueva dirección
-                obtenerClientePorId(idCliente)
                 Result.success(direccionCliente)
             } else {
                 Result.failure(Exception("Error al crear dirección: ${response.message()}"))
@@ -159,18 +158,50 @@ class ClienteRepository {
     }
 
     /**
+     * Actualizar una dirección existente
+     *
+     * @param idDireccion ID de la dirección a actualizar
+     * @param idCiudad ID de la nueva ciudad
+     * @param direccion Nueva dirección completa
+     * @param alias Nuevo alias (opcional)
+     * @return Dirección actualizada
+     */
+    suspend fun actualizarDireccion(
+        idDireccion: Long,
+        idCiudad: Long,
+        direccion: String,
+        alias: String?
+    ): Result<DireccionCliente> {
+        return try {
+            val request = CrearDireccionRequest(
+                idCiudad = idCiudad,
+                direccion = direccion,
+                alias = alias
+            )
+
+            val response = gestionUsuarioApi.actualizarDireccion(idDireccion, request)
+
+            if (response.isSuccessful && response.body() != null) {
+                val direccionCliente = response.body()!!.toDomain()
+                Result.success(direccionCliente)
+            } else {
+                Result.failure(Exception("Error al actualizar dirección: ${response.message()}"))
+            }
+        } catch (e: Exception) {
+            Result.failure(e)
+        }
+    }
+
+    /**
      * Eliminar una dirección
      *
-     * @param idCliente ID del cliente
      * @param idDireccion ID de la dirección a eliminar
      */
-    suspend fun eliminarDireccion(idCliente: Long, idDireccion: Long): Result<Unit> {
+    suspend fun eliminarDireccion(idDireccion: Long): Result<Unit> {
         return try {
-            val response = gestionUsuarioApi.eliminarDireccion(idCliente, idDireccion)
+            val response = gestionUsuarioApi.eliminarDireccion(idDireccion)
 
             if (response.isSuccessful) {
-                // Actualizar cliente en caché
-                obtenerClientePorId(idCliente)
                 Result.success(Unit)
             } else {
                 Result.failure(Exception("Error al eliminar dirección: ${response.message()}"))

@@ -1,4 +1,4 @@
-package com.example.goldenburgers.network
+package com.example.goldenburgers.service
 
 import com.example.goldenburgers.model.dto.*
 import retrofit2.Response
@@ -40,24 +40,22 @@ interface GestionUsuarioApiService {
     ): Response<ClienteDTO>
 
     /**
-     * Actualizar perfil de cliente
-     * PUT /api/clientes/{id}
+     * Actualizar propio perfil de cliente (nombre/teléfono)
+     * PUT /api/clientes/perfil
      */
-    @PUT("api/clientes/{id}")
-    suspend fun actualizarPerfilCliente(
-        @Path("id") idCliente: Long,
+    @PUT("api/clientes/perfil")
+    suspend fun actualizarPerfil(
         @Body request: ActualizarPerfilClienteRequest
     ): Response<ClienteDTO>
 
     // --- Endpoints de Direcciones ---
 
     /**
-     * Crear nueva dirección para un cliente
-     * POST /api/clientes/{idCliente}/direcciones
+     * Crear nueva dirección para el cliente autenticado
+     * POST /api/clientes/direcciones
      */
-    @POST("api/clientes/{idCliente}/direcciones")
+    @POST("api/clientes/direcciones")
     suspend fun crearDireccion(
-        @Path("idCliente") idCliente: Long,
         @Body request: CrearDireccionRequest
     ): Response<DireccionClienteDTO>
 
@@ -71,13 +69,22 @@ interface GestionUsuarioApiService {
     ): Response<List<DireccionClienteDTO>>
 
     /**
-     * Eliminar una dirección
-     * DELETE /api/clientes/{idCliente}/direcciones/{idDireccion}
+     * Actualizar una dirección existente
+     * PUT /api/clientes/direcciones/{id}
      */
-    @DELETE("api/clientes/{idCliente}/direcciones/{idDireccion}")
+    @PUT("api/clientes/direcciones/{id}")
+    suspend fun actualizarDireccion(
+        @Path("id") idDireccion: Long,
+        @Body request: CrearDireccionRequest
+    ): Response<DireccionClienteDTO>
+
+    /**
+     * Eliminar una dirección
+     * DELETE /api/clientes/direcciones/{id}
+     */
+    @DELETE("api/clientes/direcciones/{id}")
     suspend fun eliminarDireccion(
-        @Path("idCliente") idCliente: Long,
-        @Path("idDireccion") idDireccion: Long
+        @Path("id") idDireccion: Long
     ): Response<Unit>
 
     // --- Endpoints de Ciudades ---
@@ -98,18 +105,18 @@ interface ApiGatewayService {
 
     /**
      * Login de usuario
-     * POST /auth/login
+     * POST /api/auth/login
      */
-    @POST("auth/login")
+    @POST("api/auth/login")
     suspend fun login(
         @Body request: LoginRequest
     ): Response<LoginResponse>
 
     /**
      * Refresh token
-     * POST /auth/refresh
+     * POST /api/auth/refresh
      */
-    @POST("auth/refresh")
+    @POST("api/auth/refresh")
     suspend fun refreshToken(
         @Body refreshToken: String
     ): Response<LoginResponse>

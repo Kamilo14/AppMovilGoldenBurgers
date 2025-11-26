@@ -1,4 +1,4 @@
-package com.example.goldenburgers.network
+package com.example.goldenburgers.service
 
 import okhttp3.OkHttpClient
 import okhttp3.logging.HttpLoggingInterceptor

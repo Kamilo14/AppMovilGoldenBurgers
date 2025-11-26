@@ -3,7 +3,8 @@ package com.example.goldenburgers.model.dto
 import com.google.gson.annotations.SerializedName
 
 /**
- * DTO para crear una nueva dirección de cliente
+ * DTO para crear una dirección de cliente
+ * Coincide con CrearDireccionCliente del backend
  */
 data class CrearDireccionRequest(
     @SerializedName("idCliente")

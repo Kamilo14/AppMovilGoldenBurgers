@@ -3,7 +3,7 @@ package com.example.goldenburgers.repository
 import com.example.goldenburgers.model.data.Cliente
 import com.example.goldenburgers.model.dto.RegistrarClienteRequest
 import com.example.goldenburgers.model.mapper.toDomain
-import com.example.goldenburgers.network.RetrofitClient
+import com.example.goldenburgers.service.RetrofitClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
 import kotlinx.coroutines.tasks.await

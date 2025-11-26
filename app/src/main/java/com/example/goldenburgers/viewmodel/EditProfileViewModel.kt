@@ -18,6 +18,7 @@ data class EditProfileUiState(
     val nombreCliente: String = "",
     val telefonoCliente: String = "",
     val email: String = "",
+    val profileImageUri: String? = null,  // Foto de perfil local (no se guarda en backend)
     val isLoading: Boolean = true,
     val cliente: Cliente? = null
 )
@@ -76,6 +77,10 @@ class EditProfileViewModel(
         it.copy(telefonoCliente = telefono)
     }
 
+    fun onProfileImageChange(uri: String?) = _uiState.update {
+        it.copy(profileImageUri = uri)
+    }
+
     /**
      * Guardar cambios del perfil
      */
@@ -92,8 +97,8 @@ class EditProfileViewModel(
             _uiState.update { it.copy(isLoading = true) }
 
             val result = clienteRepository.actualizarPerfil(
-                idCliente = cliente.idCliente,
                 nombreCliente = currentState.nombreCliente,
+                email = currentState.email,
                 telefonoCliente = currentState.telefonoCliente.ifBlank { null }
             )
 
