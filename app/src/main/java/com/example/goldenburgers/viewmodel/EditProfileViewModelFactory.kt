@@ -2,21 +2,21 @@ package com.example.goldenburgers.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
-import com.example.goldenburgers.model.ProductRepository
-import com.example.goldenburgers.model.SessionManager
+import com.example.goldenburgers.repository.AuthRepository
+import com.example.goldenburgers.repository.ClienteRepository
 
 /**
- * Factory para crear instancias de EditProfileViewModel.
- * Proporciona el ProductRepository y el SessionManager necesarios.
+ * Factory para crear instancias de EditProfileViewModel
+ * Provee AuthRepository y ClienteRepository necesarios para gestión de perfil
  */
 class EditProfileViewModelFactory(
-    private val repository: ProductRepository,
-    private val sessionManager: SessionManager
+    private val authRepository: AuthRepository,
+    private val clienteRepository: ClienteRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
         if (modelClass.isAssignableFrom(EditProfileViewModel::class.java)) {
             @Suppress("UNCHECKED_CAST")
-            return EditProfileViewModel(repository, sessionManager) as T
+            return EditProfileViewModel(authRepository, clienteRepository) as T
         }
         throw IllegalArgumentException("Unknown ViewModel class for EditProfileViewModelFactory")
     }

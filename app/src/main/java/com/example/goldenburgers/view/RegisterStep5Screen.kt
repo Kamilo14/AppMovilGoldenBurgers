@@ -16,7 +16,9 @@ import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import com.example.goldenburgers.model.SessionManager
+import com.example.goldenburgers.model.data.CiudadesDisponibles
 import com.example.goldenburgers.navigation.AppScreens
+import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.viewmodel.RegisterViewModel
 import kotlinx.coroutines.launch
 
@@ -30,7 +32,8 @@ import kotlinx.coroutines.launch
 fun RegisterStep5Screen(
     navController: NavController,
     viewModel: RegisterViewModel,
-    sessionManager: SessionManager
+    sessionManager: SessionManager,
+    clienteRepository: ClienteRepository
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val scope = rememberCoroutineScope()
@@ -62,20 +65,16 @@ fun RegisterStep5Screen(
                 LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     item { SummarySectionTitle("1. Acceso y Contacto") }
                     item { SummaryItem("Email", uiState.email) }
-                    item { SummaryItem("Contraseña", "********") } // Por seguridad, nunca muestro la contraseña.
+                    item { SummaryItem("Contraseña", "********") }
                     item { HorizontalDivider(Modifier.padding(vertical = 12.dp)) }
-                    item { SummaryItem("Nombre Completo", "${uiState.fullName} ") }
-                    item { SummaryItem("Teléfono", uiState.phoneNumber) }
+                    item { SummaryItem("Nombre Completo", uiState.fullName) }
+                    item { SummaryItem("Teléfono", uiState.phoneNumber.ifBlank { "No especificado" }) }
                     item { HorizontalDivider(Modifier.padding(vertical = 24.dp)) }
 
                     item { SummarySectionTitle("2. Dirección de Despacho") }
-                    item { SummaryItem("Calle y Número", "${uiState.street} ${uiState.number}") }
-                    item { SummaryItem("Ciudad/Comuna", uiState.city) }
-                    item { HorizontalDivider(Modifier.padding(vertical = 24.dp)) }
-
-                    item { SummarySectionTitle("3. Detalles Opcionales") }
-                    item { SummaryItem("Género", uiState.gender.ifBlank { "No especificado" }) }
-                    item { SummaryItem("Fecha Nacimiento", uiState.birthDate.ifBlank { "No especificado" }) }
+                    item { SummaryItem("Ciudad", uiState.idCiudad?.let { CiudadesDisponibles.obtenerNombrePorId(it) } ?: "No especificada") }
+                    item { SummaryItem("Dirección", uiState.direccion.ifBlank { "No especificada" }) }
+                    item { SummaryItem("Alias", uiState.alias.ifBlank { "No especificado" }) }
                     item { Spacer(Modifier.height(24.dp)) }
                 }
 
@@ -84,6 +83,7 @@ fun RegisterStep5Screen(
                     onClick = {
                         // La UI simplemente le notifica al ViewModel que el usuario ha confirmado.
                         viewModel.onRegisterClicked(
+                            clienteRepository = clienteRepository,
                             onSuccess = {
                                 // Si el registro es exitoso, lanzo una corutina para guardar la sesión
                                 // y navegar a la pantalla principal.
@@ -95,21 +95,22 @@ fun RegisterStep5Screen(
                                 }
                             },
                             onError = { errorMessage ->
-                                // Si el ViewModel me devuelve un error, se lo muestro al usuario.
-                                // He añadido una lógica para mostrar un mensaje más amigable si el error
-                                // es de "email ya registrado".
-                                val message = if (errorMessage.contains("UNIQUE constraint failed")) {
-                                    "El correo electrónico ya está registrado."
-                                } else {
-                                    "Error: $errorMessage"
-                                }
-                                Toast.makeText(context, message, Toast.LENGTH_LONG).show()
+                                // Mostrar error al usuario
+                                Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
                             }
                         )
                     },
-                    modifier = Modifier.fillMaxWidth().height(50.dp)
+                    modifier = Modifier.fillMaxWidth().height(50.dp),
+                    enabled = !uiState.isLoading
                 ) {
-                    Text("Confirmar Registro", style = MaterialTheme.typography.labelLarge)
+                    if (uiState.isLoading) {
+                        CircularProgressIndicator(
+                            modifier = Modifier.size(24.dp),
+                            color = MaterialTheme.colorScheme.onPrimary
+                        )
+                    } else {
+                        Text("Confirmar Registro", style = MaterialTheme.typography.labelLarge)
+                    }
                 }
                 Spacer(Modifier.height(24.dp))
             }

@@ -1,51 +1,40 @@
 package com.example.goldenburgers.model
 
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.flowOf
 
 /**
- * Abstrae el origen de los datos (en este caso, los DAOs de Room)
+ * TODO: Este es un ProductRepository temporal/stub para que compile.
+ * El desarrollador encargado del catálogo debe implementar esto con el backend real.
+ *
+ * ProductRepository temporal para que CatalogViewModel compile.
+ * Este debe ser reemplazado con la implementación real del backend de catálogo.
  */
-class ProductRepository(
-    private val productDao: ProductDao,
-    private val userDao: UserDao
-) {
+class ProductRepository {
 
-    // --- Operaciones de Productos ---
+    // Flujo vacío de productos - retorna lista vacía
+    fun getAllProducts(): Flow<List<Producto>> = flowOf(emptyList())
 
-    // Se expone un Flow con la lista de todos los productos.
-    val allProducts: Flow<List<Producto>> = productDao.getAllProducts()
+    // Flujo vacío de favoritos - retorna lista vacía
+    fun getFavorites(): Flow<List<Producto>> = flowOf(emptyList())
 
-    // Se hace el mismo proceso para los productos favoritos
-    val favoriteProducts: Flow<List<Producto>> = productDao.getFavoriteProducts()
-
-    /**
-     * Actualizar el estado de favorito de un producto
-     */
-    suspend fun updateFavorite(productId: Int, isFavorite: Boolean) {
-        productDao.updateFavorite(productId, isFavorite)
+    // Método stub para toggle favorito - no hace nada
+    suspend fun toggleFavorite(productId: Int) {
+        // TODO: Implementar con backend
     }
 
-    // --- Operaciones de Usuarios ---
-
-    /**
-     * Registra un nuevo usuario en la base de datos.
-     */
-    suspend fun registerUser(user: User) {
-        userDao.insertUser(user)
-    }
-
-    /**
-     * Buscar un usuario por su email.
-     */
-    suspend fun findUserByEmail(email: String): User? {
-        return userDao.getUserByEmail(email)
-    }
-
-    /**
-     * Actualizar los datos de un usuario existente en la base de datos.
-     */
-    suspend fun updateUser(user: User) {
-        // El UserDao se encarga de encontrar al usuario por su ID (clave primaria) y actualizarlo.
-        userDao.updateUser(user)
+    // Método stub para obtener usuario - retorna null
+    suspend fun getUserByEmail(email: String): User? {
+        // TODO: Implementar con backend
+        return null
     }
 }
+
+/**
+ * TODO: Modelo temporal User para que compile.
+ * Debe ser reemplazado por el modelo real del backend.
+ */
+data class User(
+    val email: String = "",
+    val fullName: String = ""
+)
