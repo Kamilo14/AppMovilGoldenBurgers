@@ -30,21 +30,31 @@ import com.example.goldenburgers.viewmodel.*
  */
 @Composable
 fun AppNavigation(
-    // Recibe los gestores de sesión y tema desde MainActivity para que su estado
-    // persista durante toda la vida de la aplicación.
     sessionManager: SessionManager,
     themeManager: ThemeManager,
-    catalogViewModel: CatalogViewModel
+    authRepository: com.example.goldenburgers.repository.AuthRepository,
+    clienteRepository: com.example.goldenburgers.repository.ClienteRepository
 ) {
     // Crea el NavController principal para todas las operaciones de navegación.
     val navController = rememberNavController()
 
-    // --- Creación de ViewModels ---
-    // Creación de las instancias de ViewModels, en un nivel alto del árbol de Composable.
-    // Se utilizan sus respectivas Factories para inyectar las dependencias que necesitan (como el repositorio).
-    val loginViewModel: LoginViewModel = viewModel(factory = LoginViewModelFactory(catalogViewModel.repository))
-    val registerViewModel: RegisterViewModel = viewModel(factory = RegisterViewModelFactory(catalogViewModel.repository))
-    val editProfileViewModel: EditProfileViewModel = viewModel(factory = EditProfileViewModelFactory(catalogViewModel.repository, sessionManager))
+    // --- Creación de ViewModels con nuevos repositorios ---
+    val loginViewModel: LoginViewModel = viewModel(
+        factory = LoginViewModelFactory(authRepository, clienteRepository)
+    )
+    val registerViewModel: RegisterViewModel = viewModel(
+        factory = RegisterViewModelFactory(authRepository)
+    )
+    val editProfileViewModel: EditProfileViewModel = viewModel(
+        factory = EditProfileViewModelFactory(authRepository, clienteRepository)
+    )
+
+    // TODO: El catálogo será implementado por otro desarrollador
+    // ProductRepository temporal creado para que compile
+    val productRepository = com.example.goldenburgers.model.ProductRepository()
+    val catalogViewModel: CatalogViewModel = viewModel(
+        factory = CatalogViewModelFactory(productRepository, sessionManager)
+    )
 
     // --- Lógica de Arranque ---
     // Observa el Flow del SessionManager para saber si hay un usuario logueado.
@@ -88,8 +98,7 @@ fun AppNavigation(
         composable(AppScreens.RegisterStep1Screen.route) { RegisterStep1Screen(navController, registerViewModel) }
         composable(AppScreens.RegisterStep2Screen.route) { RegisterStep2Screen(navController, registerViewModel) }
         composable(AppScreens.RegisterStep3Screen.route) { RegisterStep3Screen(navController, registerViewModel) }
-        composable(AppScreens.RegisterStep4Screen.route) { RegisterStep4Screen(navController, registerViewModel) }
-        composable(AppScreens.RegisterStep5Screen.route) { RegisterStep5Screen(navController, registerViewModel, sessionManager) }
+        composable(AppScreens.RegisterStep5Screen.route) { RegisterStep5Screen(navController, registerViewModel, sessionManager, clienteRepository) }
 
         // --- Pantallas de Usuario ---
         composable(AppScreens.EditProfileScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {

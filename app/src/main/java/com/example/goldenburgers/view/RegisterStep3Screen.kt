@@ -136,11 +136,11 @@ fun RegisterStep3Screen(navController: NavController, viewModel: RegisterViewMod
 
             // --- Botones de Navegación ---
             // El usuario puede continuar al siguiente paso con o sin foto.
-            Button(onClick = { navController.navigate(AppScreens.RegisterStep4Screen.route) }, modifier = Modifier.fillMaxWidth().height(50.dp)) {
+            Button(onClick = { navController.navigate(AppScreens.RegisterStep5Screen.route) }, modifier = Modifier.fillMaxWidth().height(50.dp)) {
                 Text("Siguiente")
             }
             Spacer(Modifier.height(16.dp))
-            TextButton(onClick = { navController.navigate(AppScreens.RegisterStep4Screen.route) }) {
+            TextButton(onClick = { navController.navigate(AppScreens.RegisterStep5Screen.route) }) {
                 Text("Omitir por ahora")
             }
 

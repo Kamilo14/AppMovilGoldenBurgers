@@ -1,4 +1,4 @@
-package com.example.goldenburgers.viewmodel
+copackage com.example.goldenburgers.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope

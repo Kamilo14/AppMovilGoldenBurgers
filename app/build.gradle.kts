@@ -2,7 +2,7 @@ plugins {
     alias(libs.plugins.android.application)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
-    id("kotlin-kapt")
+    id("com.google.gms.google-services")
 }
 
 
@@ -44,31 +44,35 @@ android {
 }
 
 dependencies {
-    // --- Room ---
-    implementation(libs.androidx.room.runtime)
-    implementation(libs.androidx.room.ktx)
-    kapt(libs.androidx.room.compiler)
+    // --- Firebase ---
+    implementation(platform("com.google.firebase:firebase-bom:34.6.0"))
+    implementation("com.google.firebase:firebase-auth")
+    implementation("com.google.firebase:firebase-analytics")
 
-    // [NUEVO] Coil para la carga de imágenes
+    // --- Retrofit para comunicación con API ---
+    implementation("com.squareup.retrofit2:retrofit:2.9.0")
+    implementation("com.squareup.retrofit2:converter-gson:2.9.0")
+    implementation("com.squareup.okhttp3:logging-interceptor:4.12.0")
+
+    // --- Coil para la carga de imágenes ---
     implementation("io.coil-kt:coil-compose:2.6.0")
 
-    // ViewModel para MVVM en Compose
+    // --- ViewModel para MVVM en Compose ---
     implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.9.4")
 
-    // Navigation para la navegación entre pantallas en Compose
+    // --- Navigation para la navegación entre pantallas en Compose ---
     implementation("androidx.navigation:navigation-compose:2.7.7")
 
-    // DataStore para persistencia de datos local
+    // --- DataStore para persistencia de datos local (sesión, preferencias) ---
     implementation("androidx.datastore:datastore-preferences:1.1.1")
 
+    // --- Material Icons ---
     implementation("androidx.compose.material:material-icons-extended")
 
-    // Lifecycle para observar estados de forma segura en Compose
+    // --- Lifecycle para observar estados de forma segura en Compose ---
     implementation("androidx.lifecycle:lifecycle-runtime-compose:2.9.4")
 
-    implementation("io.coil-kt:coil-compose:2.5.0")
-    implementation("androidx.lifecycle:lifecycle-viewmodel-compose:2.6.2")
-
+    // --- AndroidX Core ---
     implementation(libs.androidx.core.ktx)
     implementation(libs.androidx.lifecycle.runtime.ktx)
     implementation(libs.androidx.activity.compose)
@@ -78,7 +82,7 @@ dependencies {
     implementation(libs.androidx.compose.ui.tooling.preview)
     implementation(libs.androidx.compose.material3)
 
-    // Location Services
+    // --- Location Services ---
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
     // --- Test Dependencies ---
@@ -90,3 +94,5 @@ dependencies {
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 }
+
+// Nota: Se eliminaron las dependencias de Room ya que ahora todo se maneja a través del backend

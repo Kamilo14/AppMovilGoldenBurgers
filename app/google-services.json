@@ -1,0 +1,39 @@
+{
+  "project_info": {
+    "project_number": "200007088077",
+    "project_id": "goldenburgers-60680",
+    "storage_bucket": "goldenburgers-60680.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:200007088077:android:be8655f00c1aa632733684",
+        "android_client_info": {
+          "package_name": "com.example.goldenburgers"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "200007088077-qfh7e851o8l8a4a5hsfp3ftos4cbfj98.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCq10GIrVI76xtDIVtuKR7zgI63vARw5Zo"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "200007088077-qfh7e851o8l8a4a5hsfp3ftos4cbfj98.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

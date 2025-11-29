@@ -12,7 +12,6 @@ sealed class AppScreens(val route: String) {
     object RegisterStep1Screen : AppScreens("register_step1_screen")
     object RegisterStep2Screen : AppScreens("register_step2_screen")
     object RegisterStep3Screen : AppScreens("register_step3_screen")
-    object RegisterStep4Screen : AppScreens("register_step4_screen")
     object RegisterStep5Screen : AppScreens("register_step5_screen")
 
     // --- Pantallas de Gestión de Usuario ---
