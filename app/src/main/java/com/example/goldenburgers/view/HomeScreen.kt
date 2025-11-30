@@ -54,11 +54,9 @@ fun HomeScreen(catalogViewModel: CatalogViewModel) {
         uiState.products.filter { it.categoria.equals(selectedCategory, ignoreCase = true) }
     }
 
-    Box(modifier = Modifier.fillMaxSize()) { // Usamos un Box para poder mostrar el Dialog por encima
+    Box(modifier = Modifier.fillMaxSize()) { 
         Column(
-            modifier = Modifier
-                .fillMaxSize()
-                .background(Color.Black)
+            modifier = Modifier.fillMaxSize()
         ) {
             BrandHeader()
             CategoryHeader(
@@ -79,7 +77,6 @@ fun HomeScreen(catalogViewModel: CatalogViewModel) {
             }
         }
 
-        // Si hay un producto seleccionado, mostramos el Dialog
         selectedProduct?.let {
             ProductDetailDialog(product = it, onDismiss = { selectedProduct = null })
         }
@@ -91,30 +88,33 @@ fun BrandHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .background(Color.Black)
             .padding(top = 16.dp, bottom = 8.dp),
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
-        Text("GOLDEN", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = Color.White)
-        Text("BURGER", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = Color(0xFFFFC107))
+        Text("GOLDEN", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.onBackground)
+        Text("BURGER", style = MaterialTheme.typography.headlineMedium, fontWeight = FontWeight.Black, color = MaterialTheme.colorScheme.primary)
     }
 }
 
 @Composable
 fun CategoryHeader(categories: List<String>, selectedCategory: String, onCategorySelected: (String) -> Unit) {
     LazyRow(
-        modifier = Modifier.fillMaxWidth().background(Color.Black).padding(bottom = 12.dp),
+        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp),
         contentPadding = PaddingValues(horizontal = 16.dp),
         horizontalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         items(categories) {
             val isSelected = it == selectedCategory
             Box(
-                modifier = Modifier.clip(CircleShape).background(if (isSelected) Color(0xFFFFC107) else Color.DarkGray).clickable { onCategorySelected(it) }.padding(horizontal = 20.dp, vertical = 10.dp),
+                modifier = Modifier
+                    .clip(CircleShape)
+                    .background(if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surfaceVariant)
+                    .clickable { onCategorySelected(it) }
+                    .padding(horizontal = 20.dp, vertical = 10.dp),
                 contentAlignment = Alignment.Center
             ) {
-                Text(it, color = if (isSelected) Color.Black else Color.White, fontWeight = FontWeight.Medium)
+                Text(it, color = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant, fontWeight = FontWeight.Medium)
             }
         }
     }
@@ -129,29 +129,23 @@ fun ProductCard(product: Producto, viewModel: CatalogViewModel, onProductClick: 
     val isFavorite = uiState.favorites.any { it.idProducto == product.idProducto }
 
     Card(
-        modifier = Modifier.fillMaxWidth().clickable { onProductClick(product) }, // Hacemos la tarjeta clickeable
+        modifier = Modifier.fillMaxWidth().clickable { onProductClick(product) },
         elevation = CardDefaults.cardElevation(4.dp),
         shape = RoundedCornerShape(12.dp)
     ) {
         Column {
             Box(modifier = Modifier.height(150.dp)) {
-                if (product.imagenUrl != null) {
-                    AsyncImage(
-                        model = ImageRequest.Builder(LocalContext.current)
-                            .data(product.imagenUrl)
-                            .crossfade(true)
-                            .placeholder(R.drawable.goldencarga)
-                            .error(R.drawable.goldencarga)
-                            .memoryCachePolicy(CachePolicy.DISABLED)
-                            .diskCachePolicy(CachePolicy.DISABLED)
-                            .build(),
-                        contentDescription = product.nombreProducto,
-                        modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
-                        contentScale = ContentScale.Crop
-                    )
-                } else {
-                    Image(painter = painterResource(id = R.drawable.goldencarga), contentDescription = product.nombreProducto, modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)), contentScale = ContentScale.Crop)
-                }
+                AsyncImage(
+                    model = ImageRequest.Builder(LocalContext.current)
+                        .data(product.imagenUrl)
+                        .crossfade(true)
+                        .placeholder(R.drawable.imagencarga) // [CORREGIDO]
+                        .error(R.drawable.imagencarga)       // [CORREGIDO]
+                        .build(),
+                    contentDescription = product.nombreProducto,
+                    modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
+                    contentScale = ContentScale.Crop
+                )
                 IconButton(onClick = { viewModel.toggleFavorite(product.idProducto, isFavorite) }, modifier = Modifier.align(Alignment.TopEnd).padding(4.dp)) {
                     Icon(imageVector = if (isFavorite) Icons.Default.Favorite else Icons.Default.FavoriteBorder, "Favorito", tint = if (isFavorite) Color.Red else Color.White)
                 }
@@ -185,10 +179,8 @@ fun ProductDetailDialog(product: Producto, onDismiss: () -> Unit) {
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(product.imagenUrl)
                         .crossfade(true)
-                        .placeholder(R.drawable.goldencarga)
-                        .error(R.drawable.goldencarga)
-                        .memoryCachePolicy(CachePolicy.DISABLED)
-                        .diskCachePolicy(CachePolicy.DISABLED)
+                        .placeholder(R.drawable.imagencarga) // [CORREGIDO]
+                        .error(R.drawable.imagencarga)       // [CORREGIDO]
                         .build(),
                     contentDescription = product.nombreProducto,
                     modifier = Modifier.height(200.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)),
@@ -197,7 +189,7 @@ fun ProductDetailDialog(product: Producto, onDismiss: () -> Unit) {
                 Spacer(Modifier.height(16.dp))
                 Text("Descripción", style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.Bold)
                 Spacer(Modifier.height(8.dp))
-                Box(modifier = Modifier.heightIn(max = 150.dp)) { // Limitar la altura de la descripción
+                Box(modifier = Modifier.heightIn(max = 150.dp)) {
                     Text(product.descripcion ?: "Sin descripción.", style = MaterialTheme.typography.bodyLarge, modifier = Modifier.verticalScroll(rememberScrollState()))
                 }
                 Spacer(Modifier.height(24.dp))

@@ -17,10 +17,10 @@ sealed class AppScreens(val route: String) {
     object EditProfileScreen : AppScreens("edit_profile_screen")
     object AddressListScreen : AppScreens("address_list_screen")
     object EditAddressScreen : AppScreens("edit_address_screen")
+    object OrderHistoryScreen : AppScreens("order_history_screen") // [NUEVO]
 
     // --- Flujo de Compra ---
     object CheckoutScreen : AppScreens("checkout_screen")
-    // [NUEVO] Pantallas para el flujo de pago simulado
     object FakePaymentScreen : AppScreens("fake_payment_screen")
     object PaymentResultScreen : AppScreens("payment_result_screen")
 

@@ -78,13 +78,12 @@ fun EditProfileScreen(
     Scaffold(
         topBar = { TopAppBar(title = { Text("Editar Perfil") }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") } }) }
     ) { paddingValues ->
-        // [CORREGIDO] Muestro un indicador de carga con texto mientras el ViewModel está trabajando.
         if (uiState.isLoading) {
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     CircularProgressIndicator()
                     Spacer(modifier = Modifier.height(16.dp))
-                    Text("Guardando cambios...")
+                    Text("Cargando...") // Mensaje más genérico para carga inicial
                 }
             }
         } else {
@@ -127,6 +126,16 @@ fun EditProfileScreen(
                 OutlinedTextField(value = uiState.nombreCliente, onValueChange = viewModel::onNombreClienteChange, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(value = uiState.telefonoCliente, onValueChange = viewModel::onTelefonoClienteChange, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
+                
+                // [NUEVO] Campo de correo no editable
+                Spacer(Modifier.height(16.dp))
+                OutlinedTextField(
+                    value = uiState.email,
+                    onValueChange = {}, // No se puede cambiar
+                    label = { Text("Correo") },
+                    modifier = Modifier.fillMaxWidth(),
+                    enabled = false // Esto lo hace no editable
+                )
 
                 Spacer(Modifier.height(32.dp))
 

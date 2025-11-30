@@ -3,6 +3,7 @@ package com.example.goldenburgers.repository
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.dto.PedidoDTO
 import com.example.goldenburgers.service.AuthenticatedRetrofitClient
+import com.example.goldenburgers.service.PedidoApiService
 import kotlinx.coroutines.flow.first
 
 /**
@@ -12,21 +13,20 @@ class PedidoRepository(
     private val sessionManager: SessionManager
 ) {
 
-    /**
-     * Obtiene una instancia autenticada del servicio de pedidos.
-     * Lanza una excepción si el token no está disponible, ya que todas las operaciones de pedidos
-     * deberían estar autenticadas.
-     */
-    private suspend fun getPedidoApiService(): com.example.goldenburgers.service.PedidoApiService {
+    // [CORREGIDO] Lógica más estricta. Lanza una excepción si el token no está disponible.
+    private suspend fun getPedidoApiService(): PedidoApiService {
         val token = sessionManager.authTokenFlow.first()
-            ?: throw IllegalStateException("El token de autenticación no está disponible.")
+            ?: throw IllegalStateException("Token de autenticación no disponible. No se puede realizar la operación.")
+        
+        if (token.isBlank()) {
+            throw IllegalStateException("Token de autenticación está vacío. No se puede realizar la operación.")
+        }
+
         return AuthenticatedRetrofitClient(token).pedidoService
     }
 
     /**
      * Envía un nuevo pedido completo al backend.
-     * @param pedido El objeto PedidoDTO que contiene todos los datos del pedido a crear.
-     * @return Un Result que contiene el PedidoDTO creado o una excepción si falla.
      */
     suspend fun crearPedidoCompleto(pedido: PedidoDTO): Result<PedidoDTO> {
         return try {
@@ -40,8 +40,6 @@ class PedidoRepository(
 
     /**
      * Obtiene el historial de pedidos para un cliente específico.
-     * @param idCliente El ID del cliente cuyos pedidos se quieren obtener.
-     * @return Un Result con la lista de PedidoDTOs o una excepción si falla.
      */
     suspend fun getPedidosPorCliente(idCliente: Long): Result<List<PedidoDTO>> {
         return try {
@@ -55,9 +53,6 @@ class PedidoRepository(
 
     /**
      * Cambia el estado de un pedido existente.
-     * @param idPedido El ID del pedido a modificar.
-     * @param idEstado El ID del nuevo estado.
-     * @return Un Result con el PedidoDTO actualizado o una excepción si falla.
      */
     suspend fun cambiarEstadoPedido(idPedido: Long, idEstado: Long): Result<PedidoDTO> {
         return try {

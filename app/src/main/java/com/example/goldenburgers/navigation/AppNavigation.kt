@@ -22,10 +22,7 @@ import androidx.navigation.navArgument
 import com.example.goldenburgers.model.ProductRepository
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.ThemeManager
-import com.example.goldenburgers.repository.AuthRepository
-import com.example.goldenburgers.repository.ClienteRepository
-import com.example.goldenburgers.repository.FavoritesRepository
-import com.example.goldenburgers.repository.PedidoRepository
+import com.example.goldenburgers.repository.*
 import com.example.goldenburgers.view.*
 import com.example.goldenburgers.viewmodel.*
 
@@ -43,12 +40,14 @@ fun AppNavigation(
     val favoritesRepository = FavoritesRepository(context, sessionManager)
     val productRepository = ProductRepository(sessionManager, favoritesRepository)
     val pedidoRepository = PedidoRepository(sessionManager)
+    val routingRepository = RoutingRepository() // [NUEVO]
 
     // --- ViewModels ---
     val catalogViewModel: CatalogViewModel = viewModel { CatalogViewModelFactory(productRepository, sessionManager, clienteRepository).create(CatalogViewModel::class.java) }
-    val addressViewModel: AddressViewModel = viewModel { AddressViewModelFactory(clienteRepository, authRepository).create(AddressViewModel::class.java) }
+    // [CORREGIDO] Se pasa la nueva dependencia routingRepository a la factory
+    val addressViewModel: AddressViewModel = viewModel { AddressViewModelFactory(clienteRepository, authRepository, routingRepository).create(AddressViewModel::class.java) }
     val editAddressViewModel: EditAddressViewModel = viewModel { EditAddressViewModelFactory(clienteRepository, authRepository).create(EditAddressViewModel::class.java) }
-    val pedidoViewModel: PedidoViewModel = viewModel { PedidoViewModelFactory(pedidoRepository, clienteRepository).create(PedidoViewModel::class.java) }
+    val pedidoViewModel: PedidoViewModel = viewModel { PedidoViewModelFactory(pedidoRepository, clienteRepository, authRepository).create(PedidoViewModel::class.java) }
     val editProfileViewModel: EditProfileViewModel = viewModel { EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager).create(EditProfileViewModel::class.java) }
     val fakePaymentViewModel: FakePaymentViewModel = viewModel { FakePaymentViewModelFactory(pedidoRepository).create(FakePaymentViewModel::class.java) }
 
@@ -101,7 +100,7 @@ fun AppNavigation(
                 CheckoutScreen(navController, catalogViewModel, addressViewModel, pedidoViewModel, editProfileViewModel)
             }
 
-            // [CORREGIDO] Se pasa el catalogViewModel a FakePaymentScreen
+            // Flujo de pago
             composable(
                 route = "${AppScreens.FakePaymentScreen.route}/{orderId}/{totalAmount}",
                 arguments = listOf(
@@ -119,6 +118,11 @@ fun AppNavigation(
             ) { backStackEntry ->
                 val wasSuccessful = backStackEntry.arguments?.getBoolean("wasSuccessful") ?: false
                 PaymentResultScreen(navController, wasSuccessful)
+            }
+            
+            // Historial de Pedidos
+            composable(AppScreens.OrderHistoryScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
+                OrderHistoryScreen(navController = navController, viewModel = pedidoViewModel)
             }
 
             composable("main_flow", enterTransition = { fadeIn(animationSpec = tween(500)) }) {

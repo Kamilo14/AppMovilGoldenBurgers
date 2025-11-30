@@ -5,6 +5,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ExitToApp
 import androidx.compose.material.icons.filled.Edit
+import androidx.compose.material.icons.filled.History
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -59,7 +60,6 @@ fun ProfileScreen(
 
                     Spacer(Modifier.height(8.dp))
 
-                    // [NUEVO] Botón para navegar a la pantalla de gestión de direcciones
                     OutlinedButton(
                         onClick = { navController.navigate(AppScreens.AddressListScreen.route) },
                         modifier = Modifier.fillMaxWidth()
@@ -67,6 +67,18 @@ fun ProfileScreen(
                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
                         Spacer(Modifier.width(8.dp))
                         Text("Editar mis direcciones")
+                    }
+
+                    Spacer(Modifier.height(8.dp))
+
+                    // [NUEVO] Botón para ver el historial de pedidos
+                    OutlinedButton(
+                        onClick = { navController.navigate(AppScreens.OrderHistoryScreen.route) },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.History, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(Modifier.width(8.dp))
+                        Text("Mis Pedidos")
                     }
 
                     HorizontalDivider(modifier = Modifier.padding(vertical = 16.dp))

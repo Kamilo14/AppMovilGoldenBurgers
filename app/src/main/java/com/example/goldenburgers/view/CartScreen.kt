@@ -39,7 +39,6 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (uiState.cartItems.isEmpty()) {
-            // Vista para el carrito vacío
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Icon(
@@ -65,7 +64,6 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
                 }
             }
         } else {
-            // Vista para cuando hay items en el carrito
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -82,7 +80,6 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                // [CORREGIDO] Se añade un color explícito al texto "Total:"
                 Text(
                     text = "Total:",
                     style = MaterialTheme.typography.titleLarge,
@@ -124,8 +121,8 @@ fun CartItemRow(item: CartItem, viewModel: CatalogViewModel) {
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.product.imagenUrl)
                         .crossfade(true)
-                        .placeholder(R.drawable.goldencarga)
-                        .error(R.drawable.goldencarga)
+                        .placeholder(R.drawable.imagencarga) // [CORREGIDO]
+                        .error(R.drawable.imagencarga)       // [CORREGIDO]
                         .build(),
                     contentDescription = item.product.nombreProducto,
                     modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)),
@@ -133,7 +130,7 @@ fun CartItemRow(item: CartItem, viewModel: CatalogViewModel) {
                 )
             } else {
                 Image(
-                    painter = painterResource(id = R.drawable.goldencarga),
+                    painter = painterResource(id = R.drawable.imagencarga), // [CORREGIDO]
                     contentDescription = item.product.nombreProducto,
                     modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop

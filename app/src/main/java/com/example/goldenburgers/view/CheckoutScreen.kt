@@ -56,27 +56,28 @@ fun CheckoutScreen(
     var selectedDelivery by remember { mutableStateOf<DeliveryOption?>(null) }
     var selectedPayment by remember { mutableStateOf<PaymentOption?>(null) }
     var selectedAddress by remember { mutableStateOf<DireccionCliente?>(null) }
-    var showCashConfirmDialog by remember { mutableStateOf(false) }
 
     val totalPedido = catalogState.cartSubtotal + (selectedDelivery?.cost ?: 0.0)
 
+    // --- Efectos para cargar datos y reaccionar a cambios ---
     LaunchedEffect(Unit) {
         editProfileViewModel.loadCurrentUser()
         addressViewModel.loadAddresses()
     }
 
-    // [CORREGIDO] Lógica para manejar el resultado de la creación de un pedido
+    // Dispara el cálculo del tiempo cuando se selecciona una dirección
+    LaunchedEffect(selectedAddress) {
+        selectedAddress?.let { addressViewModel.calculateDeliveryTime(it) }
+    }
+
     LaunchedEffect(pedidoState.ultimoPedidoCreado) {
         val pedido = pedidoState.ultimoPedidoCreado
         if (pedido != null) {
-            // Si se pagó en efectivo, el flujo termina aquí.
-            if (pedido.idMetodoPago == 2L) { // 2 = Efectivo
+            if (pedido.idMetodoPago == 2L) {
                 Toast.makeText(context, "¡Pedido realizado con éxito!", Toast.LENGTH_LONG).show()
                 catalogViewModel.clearCart()
                 navController.popBackStack()
-            } 
-            // Si se eligió MercadoPago, navegamos a la pantalla de pago
-            else if (pedido.idMetodoPago == 3L) { // 3 = Mercado Pago
+            } else if (pedido.idMetodoPago == 3L) {
                 val total = pedido.montoTotal.toFloat()
                 navController.navigate("${AppScreens.FakePaymentScreen.route}/${pedido.idPedido}/$total")
             }
@@ -88,8 +89,8 @@ fun CheckoutScreen(
         topBar = { TopAppBar(title = { Text("Finalizar Pedido") }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") } }) }
     ) { paddingValues ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)) {
-            // ... (El resto del código de la pantalla no cambia) ...
-            // Resumen del Pedido
+            
+            // ... (Resumen del pedido y Datos de contacto se mantienen igual) ...
             item {
                 SectionTitle("Resumen del Pedido")
                 catalogState.cartItems.forEach {
@@ -133,7 +134,7 @@ fun CheckoutScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
-            
+
             // Tipo de Entrega
             item {
                 SectionTitle("Tipo de Entrega")
@@ -141,11 +142,14 @@ fun CheckoutScreen(
             items(deliveryOptions) {
                 SelectableRow(text = it.title, description = it.description, selected = selectedDelivery?.id == it.id) {
                     selectedDelivery = it
-                    if (it.id == 2L) selectedAddress = null 
+                    if (it.id == 2L) { // Si es retiro, resetea la dirección y el tiempo
+                        selectedAddress = null
+                        addressViewModel.resetDeliveryTime()
+                    }
                 }
             }
             
-            // Selección de Dirección (solo si es Delivery)
+            // Selección de Dirección y Tiempo Estimado (solo para Delivery)
             if (selectedDelivery?.id == 1L) {
                  item { 
                      Spacer(Modifier.height(24.dp))
@@ -161,17 +165,28 @@ fun CheckoutScreen(
                          Spacer(Modifier.height(8.dp))
                      }
                  }
-                item {
-                    Spacer(Modifier.height(16.dp))
-                    OutlinedButton(onClick = { navController.navigate(AppScreens.AddressListScreen.route) }, modifier = Modifier.fillMaxWidth()) {
-                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text("Editar o añadir direcciones")
+                 item {
+                    // [NUEVO] Sección para mostrar el tiempo de entrega
+                    if (addressState.isCalculatingTime) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            CircularProgressIndicator(modifier = Modifier.size(20.dp))
+                            Spacer(Modifier.width(8.dp))
+                            Text("Calculando tiempo de entrega...", style = MaterialTheme.typography.bodyMedium)
+                        }
+                    } else if (addressState.estimatedDeliveryTime != null) {
+                        val time = addressState.estimatedDeliveryTime!!
+                        Text("Tiempo de entrega aprox: ${time - 5} - ${time + 5} min.", color = MaterialTheme.colorScheme.primary, fontWeight = FontWeight.Bold)
                     }
-                }
+                     Spacer(Modifier.height(16.dp))
+                     OutlinedButton(onClick = { navController.navigate(AppScreens.AddressListScreen.route) }, modifier = Modifier.fillMaxWidth()) {
+                         Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                         Spacer(modifier = Modifier.width(8.dp))
+                         Text("Editar o añadir direcciones")
+                     }
+                 }
             }
             
-            // Método de Pago
+            // ... (El resto del archivo, Método de Pago y Botón de Confirmar, se mantienen igual) ...
             item {
                  Spacer(Modifier.height(24.dp))
                  SectionTitle("Método de Pago")
@@ -180,7 +195,6 @@ fun CheckoutScreen(
                 SelectableRow(text = it.title, description = null, selected = selectedPayment?.id == it.id) { selectedPayment = it }
             }
 
-            // Botón de Confirmar
             item {
                 Spacer(Modifier.height(32.dp))
                 Button(
@@ -191,7 +205,6 @@ fun CheckoutScreen(
                             if (currentSelectedDelivery.id == 1L && selectedAddress == null) {
                                 Toast.makeText(context, "Por favor, selecciona una dirección de envío", Toast.LENGTH_SHORT).show()
                             } else {
-                                // [CORREGIDO] Simplificamos la lógica. Siempre creamos el pedido.
                                 pedidoViewModel.crearPedido(
                                     items = catalogState.cartItems,
                                     subtotal = catalogState.cartSubtotal,
@@ -223,7 +236,6 @@ fun CheckoutScreen(
         }
     }
 }
-
 
 
 @Composable
