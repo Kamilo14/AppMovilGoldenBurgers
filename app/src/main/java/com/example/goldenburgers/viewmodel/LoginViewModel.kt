@@ -24,12 +24,12 @@ data class LoginUiState(
 )
 
 /**
- * ViewModel para la pantalla de Login con Firebase Authentication
+ * ViewModel para la pantalla de Login con Firebase Authentication y backend.
  */
 class LoginViewModel(
     private val authRepository: AuthRepository,
     private val clienteRepository: ClienteRepository,
-    private val sessionManager: SessionManager // Inyectamos SessionManager
+    private val sessionManager: SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -54,8 +54,12 @@ class LoginViewModel(
     }
 
     /**
-     * Login con Firebase Authentication
-     * Después de autenticar, guarda el token y carga la información del cliente desde el backend
+     * [CORREGIDO] Flujo de login completo:
+     * 1. Autentica en Firebase.
+     * 2. Obtiene el token de Firebase.
+     * 3. Intercambia el token de Firebase por un token JWT interno del backend.
+     * 4. Guarda el token interno en la sesión.
+     * 5. Carga los datos del cliente desde el backend (ahora funcionará).
      */
     fun login(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (!isFormValid()) {
@@ -73,37 +77,43 @@ class LoginViewModel(
 
                 loginResult.fold(
                     onSuccess = { firebaseUser ->
-                        viewModelScope.launch {
-                            // 2. Obtener Token JWT y guardar sesión inmediatamente
-                            val token = authRepository.getAuthToken()
-                            if (token != null) {
-                                sessionManager.saveUserSession(state.email, token)
-                                
-                                // 3. Ahora sí, cargar información del cliente desde el backend (ClienteRepository leerá el token guardado)
-                                val clienteResult = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
+                        // 2. Obtener token de Firebase
+                        val firebaseToken = authRepository.getFirebaseToken()
+                        if (firebaseToken == null) {
+                            onError("No se pudo obtener el token de Firebase.")
+                            _uiState.update { it.copy(isLoading = false) }
+                            return@fold
+                        }
 
+                        // 3. Intercambiar por token JWT interno
+                        val exchangeResult = authRepository.exchangeToken(firebaseToken)
+                        exchangeResult.fold(
+                            onSuccess = { internalToken ->
+                                // 4. Guardar sesión con el token INTERNO
+                                sessionManager.saveUserSession(state.email, internalToken)
+
+                                // 5. Cargar datos del cliente (ahora funcionará)
+                                val clienteResult = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
                                 clienteResult.fold(
                                     onSuccess = {
                                         _uiState.update { it.copy(isLoading = false) }
                                         onSuccess()
                                     },
-                                    onFailure = { exception ->
+                                    onFailure = { e ->
                                         _uiState.update { it.copy(isLoading = false) }
-                                        // Aunque falle la carga de perfil, el login fue exitoso.
-                                        // Podríamos dejar pasar al usuario o mostrar error.
-                                        // Mostramos error para depurar el 403 si persiste.
-                                        onError("Error al cargar datos del usuario: ${exception.message}")
+                                        onError("Login exitoso, pero no se pudieron cargar los datos del perfil: ${e.message}")
                                     }
                                 )
-                            } else {
+                            },
+                            onFailure = { e ->
                                 _uiState.update { it.copy(isLoading = false) }
-                                onError("Error al obtener token de autenticación")
+                                onError("Error de autenticación con el servidor: ${e.message}")
                             }
-                        }
+                        )
                     },
-                    onFailure = { exception ->
+                    onFailure = { e ->
                         _uiState.update { it.copy(isLoading = false) }
-                        onError(exception.message ?: "Error al iniciar sesión")
+                        onError(e.message ?: "Error al iniciar sesión")
                     }
                 )
             } catch (e: Exception) {

@@ -16,6 +16,9 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.text.style.TextAlign
@@ -29,29 +32,35 @@ import com.example.goldenburgers.viewmodel.CatalogViewModel
  */
 @Composable
 fun FavoritesScreen(catalogViewModel: CatalogViewModel) {
-    // Al igual que en HomeScreen, observo el estado del CatalogViewModel. De esta forma,
-    // si el usuario añade o quita un favorito en otra pantalla, esta se actualizará automáticamente.
     val uiState by catalogViewModel.uiState.collectAsStateWithLifecycle()
+    // [NUEVO] Estado para el producto seleccionado
+    var selectedProduct by remember { mutableStateOf<com.example.goldenburgers.model.data.Producto?>(null) }
 
-    // He decidido que si la lista de favoritos está vacía, es mejor mostrar un mensaje
-    // amigable en lugar de una pantalla en blanco. Esto mejora mucho la experiencia de usuario.
-    if (uiState.favorites.isEmpty()) {
-        EmptyFavoritesView()
-    } else {
-        // Si hay favoritos, uso una `LazyVerticalGrid` igual que en el catálogo para mostrarlos.
-        // La gran ventaja aquí es la reutilización de componentes: en lugar de reescribir
-        // el código de las tarjetas, simplemente llamo al `ProductCard` que ya había creado.
-        LazyVerticalGrid(
-            columns = GridCells.Fixed(2),
-            contentPadding = PaddingValues(16.dp),
-            horizontalArrangement = Arrangement.spacedBy(16.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
-        ) {
-            // La única diferencia con HomeScreen es que aquí recorro la lista `uiState.favorites`
-            // en lugar de `uiState.products`.
-            items(uiState.favorites) { product ->
-                ProductCard(product = product, viewModel = catalogViewModel)
+    // [NUEVO] Envolvemos en un Box para poder mostrar el Dialog por encima
+    Box(modifier = Modifier.fillMaxSize()) {
+        if (uiState.favorites.isEmpty()) {
+            EmptyFavoritesView()
+        } else {
+            LazyVerticalGrid(
+                columns = GridCells.Fixed(2),
+                contentPadding = PaddingValues(16.dp),
+                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp)
+            ) {
+                items(uiState.favorites) { product ->
+                    // [CORREGIDO] Añadimos el parámetro onProductClick
+                    ProductCard(
+                        product = product,
+                        viewModel = catalogViewModel,
+                        onProductClick = { selectedProduct = it }
+                    )
+                }
             }
+        }
+
+        // [NUEVO] Mostramos el Dialog si hay un producto seleccionado
+        selectedProduct?.let { product ->
+            ProductDetailDialog(product = product, onDismiss = { selectedProduct = null })
         }
     }
 }
