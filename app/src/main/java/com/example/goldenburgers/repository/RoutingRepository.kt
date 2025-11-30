@@ -4,12 +4,11 @@ import com.example.goldenburgers.service.ExternalApiClient
 import com.example.goldenburgers.service.NominatimApiService
 import com.example.goldenburgers.service.OsrmApiService
 
-class RoutingRepository {
-
-    // URLs base para las APIs externas
-    private val nominatimApi = ExternalApiClient.createService(NominatimApiService::class.java, "https://nominatim.openstreetmap.org/")
-    // [CORREGIDO] Se usa https para cumplir con la política de seguridad de Android
-    private val osrmApi = ExternalApiClient.createService(OsrmApiService::class.java, "https://router.project-osrm.org/")
+// [CORREGIDO] Se inyectan las dependencias para que el repositorio sea testeable
+class RoutingRepository(
+    private val nominatimApi: NominatimApiService,
+    private val osrmApi: OsrmApiService
+) {
 
     // Dirección fija del restaurante
     private val restaurantAddress = "Etchevers 210, Viña del Mar, Chile"

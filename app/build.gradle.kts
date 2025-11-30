@@ -41,6 +41,12 @@ android {
     buildFeatures {
         compose = true
     }
+    // [NUEVO] Configuración para usar JUnit5 con Kotest
+    testOptions {
+        unitTests.all {
+            it.useJUnitPlatform()
+        }
+    }
 }
 
 dependencies {
@@ -85,7 +91,7 @@ dependencies {
     // --- Location Services ---
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
-    // --- Test Dependencies ---
+    // --- Dependencias de Testeo ---
     testImplementation(libs.junit)
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
@@ -93,6 +99,12 @@ dependencies {
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
+    
+    // [NUEVO] Dependencias para Pruebas Unitarias Modernas
+    testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
+    testImplementation("io.kotest:kotest-assertions-core:5.8.0")
+    testImplementation("io.mockk:mockk:1.13.8")
+    testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
 }
 
 // Nota: Se eliminaron las dependencias de Room ya que ahora todo se maneja a través del backend

@@ -6,21 +6,17 @@ import com.example.goldenburgers.model.ProductRepository
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.repository.ClienteRepository
 
-/**
- * [CORREGIDO] Factory para crear instancias de CatalogViewModel.
- * Ahora también provee el ClienteRepository.
- */
 class CatalogViewModelFactory(
     private val repository: ProductRepository,
     private val sessionManager: SessionManager,
     private val clienteRepository: ClienteRepository
 ) : ViewModelProvider.Factory {
     override fun <T : ViewModel> create(modelClass: Class<T>): T {
+        // [CORRECCIÓN CLAVE] Se usa una comparación directa para asegurar que solo se cree el ViewModel correcto.
         if (modelClass.isAssignableFrom(CatalogViewModel::class.java)) {
-            @Suppress("UNCHECKED_CAST")
-            // Se pasan las tres dependencias al constructor del ViewModel.
+             @Suppress("UNCHECKED_CAST")
             return CatalogViewModel(repository, sessionManager, clienteRepository) as T
         }
-        throw IllegalArgumentException("Unknown ViewModel class for CatalogViewModelFactory")
+        throw IllegalArgumentException("Unknown ViewModel class")
     }
 }

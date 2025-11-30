@@ -15,23 +15,18 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
-import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.data.CiudadesDisponibles
 import com.example.goldenburgers.navigation.AppScreens
-import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.viewmodel.RegisterViewModel
 
 /**
- * [CORREGIDO] La pantalla final de registro. Ahora solo notifica al ViewModel
- * y no contiene lógica de sesión.
+ * [CORREGIDO] La pantalla ya no gestiona dependencias, solo interactúa con el ViewModel.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun RegisterStep5Screen(
     navController: NavController,
-    viewModel: RegisterViewModel,
-    sessionManager: SessionManager,
-    clienteRepository: ClienteRepository
+    viewModel: RegisterViewModel
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
     val context = LocalContext.current
@@ -74,12 +69,9 @@ fun RegisterStep5Screen(
 
                 Button(
                     onClick = {
-                        // La UI notifica al ViewModel, pasándole las dependencias que necesita.
+                        // [CORREGIDO] La llamada ya no necesita pasar dependencias
                         viewModel.onRegisterClicked(
-                            clienteRepository = clienteRepository,
-                            sessionManager = sessionManager,
                             onSuccess = {
-                                // El ViewModel ya se encargó de guardar la sesión. Aquí solo navegamos.
                                 navController.navigate("main_flow") {
                                     popUpTo(AppScreens.WelcomeScreen.route) { inclusive = true }
                                 }

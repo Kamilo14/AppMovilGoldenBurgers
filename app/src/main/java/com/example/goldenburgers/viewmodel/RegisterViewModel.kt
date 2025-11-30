@@ -1,6 +1,5 @@
 package com.example.goldenburgers.viewmodel
 
-import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goldenburgers.model.SessionManager
@@ -31,10 +30,16 @@ data class RegisterUiState(
     val isFetchingLocation: Boolean = false
 )
 
-class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel() {
+class RegisterViewModel(
+    private val authRepository: AuthRepository,
+    private val clienteRepository: ClienteRepository,
+    private val sessionManager: SessionManager
+) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
     val uiState: StateFlow<RegisterUiState> = _uiState.asStateFlow()
+    
+    private val emailRegex = Regex("[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+")
 
     private fun validateFullName(name: String): String? =
         if (name.isBlank()) "El nombre no puede estar vacío" else if (name.length < 5) "El nombre es demasiado corto" else null
@@ -46,7 +51,7 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
         if (direccion.isBlank()) "La dirección es obligatoria" else if (direccion.length < 5) "La dirección es demasiado corta" else null
 
     fun onEmailChange(email: String) = _uiState.update {
-        it.copy(email = email, emailError = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) "Correo inválido" else null)
+        it.copy(email = email, emailError = if (email.isNotBlank() && !email.matches(emailRegex)) "Correo inválido" else null)
     }
 
     fun onPasswordChange(password: String) = _uiState.update {
@@ -75,15 +80,7 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
 
     fun onFetchingLocationChange(isFetching: Boolean) = _uiState.update { it.copy(isFetchingLocation = isFetching) }
 
-    /**
-     * [CORREGIDO] Orquesta el flujo de registro completo de forma secuencial.
-     */
-    fun onRegisterClicked(
-        clienteRepository: ClienteRepository,
-        sessionManager: SessionManager,
-        onSuccess: () -> Unit,
-        onError: (String) -> Unit
-    ) {
+    fun onRegisterClicked(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (!isFormValid()) {
             onError("El formulario contiene errores o datos incompletos.")
             return
@@ -93,7 +90,6 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
             _uiState.update { it.copy(isLoading = true) }
             val state = _uiState.value
 
-            // 1. Registrar usuario y obtener token interno
             authRepository.registerUser(
                 email = state.email,
                 password = state.password,
@@ -103,10 +99,8 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
                 val cliente = registrationResult.cliente
                 val internalToken = registrationResult.internalToken
 
-                // 2. Guardar sesión con el token INTERNO
                 sessionManager.saveUserSession(state.email, internalToken)
 
-                // 3. Crear dirección (si aplica) en la misma corutina
                 if (state.idCiudad != null && state.direccion.isNotBlank()) {
                     clienteRepository.crearDireccion(
                         idCliente = cliente.idCliente,
@@ -121,7 +115,6 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
                         onError("Usuario creado, pero error al guardar dirección: ${it.message}")
                     }
                 } else {
-                    // Si no hay dirección, el registro está completo
                     _uiState.update { it.copy(isLoading = false) }
                     onSuccess()
                 }
@@ -132,17 +125,17 @@ class RegisterViewModel(private val authRepository: AuthRepository) : ViewModel(
         }
     }
 
+    // [CORRECCIÓN CLAVE] Se elimina la validación obligatoria de la dirección para que coincida con la lógica de ejecución
     private fun isFormValid(): Boolean {
         val state = _uiState.value
         return state.emailError == null &&
                 state.passwordError == null &&
                 state.fullNameError == null &&
                 state.phoneNumberError == null &&
-                state.direccionError == null &&
+                // Solo validamos el error de dirección si el usuario ha escrito algo
+                (state.direccion.isBlank() || state.direccionError == null) &&
                 state.email.isNotBlank() &&
                 state.password.isNotBlank() &&
-                state.fullName.isNotBlank() &&
-                state.direccion.isNotBlank() &&
-                state.idCiudad != null
+                state.fullName.isNotBlank()
     }
 }

@@ -13,17 +13,14 @@ import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 
 data class EditAddressUiState(
-    // Form fields
     val alias: String = "",
     val direccion: String = "",
     val ciudadId: Long? = null,
-
-    // State management
     val availableCiudades: List<Ciudad> = emptyList(),
     val isNewAddress: Boolean = true,
     val isLoading: Boolean = false,
     val error: String? = null,
-    val finishScreen: Boolean = false // To signal navigation back
+    val finishScreen: Boolean = false
 )
 
 class EditAddressViewModel(
@@ -34,8 +31,11 @@ class EditAddressViewModel(
     private val _uiState = MutableStateFlow(EditAddressUiState())
     val uiState: StateFlow<EditAddressUiState> = _uiState.asStateFlow()
 
-    init {
-        // Cargar las ciudades disponibles al iniciar el ViewModel
+    // [CORREGIDO] El init ahora está vacío para que sea testeable
+    init {}
+
+    // [NUEVO] Función para ser llamada desde la UI
+    fun loadInitialData() {
         loadAvailableCiudades()
     }
 
@@ -48,7 +48,6 @@ class EditAddressViewModel(
     }
 
     fun loadAddress(addressId: Long) {
-        // Si el id es -1L, es una dirección nueva, no hacemos nada.
         if (addressId == -1L) {
             _uiState.update { it.copy(isNewAddress = true, isLoading = false) }
             return

@@ -34,7 +34,11 @@ class CatalogViewModel(
     private val _uiState = MutableStateFlow(CatalogUiState())
     val uiState: StateFlow<CatalogUiState> = _uiState.asStateFlow()
 
-    init {
+    // [CORREGIDO] El bloque init ahora está vacío para que el ViewModel sea testeable.
+    init {}
+
+    // [NUEVO] Función para iniciar la carga de datos desde la UI.
+    fun loadInitialData() {
         observeProducts()
         observeFavorites()
         loadUserName()

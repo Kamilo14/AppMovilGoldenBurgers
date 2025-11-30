@@ -1,6 +1,5 @@
 package com.example.goldenburgers.viewmodel
 
-import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goldenburgers.model.SessionManager
@@ -35,8 +34,11 @@ class LoginViewModel(
     private val _uiState = MutableStateFlow(LoginUiState())
     val uiState: StateFlow<LoginUiState> = _uiState.asStateFlow()
 
+    // [CORREGIDO] Se usa una regex de Kotlin puro para que el ViewModel no dependa del framework de Android.
+    private val emailRegex = Regex("[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+")
+
     fun onEmailChange(email: String) {
-        val error = if (email.isNotBlank() && !Patterns.EMAIL_ADDRESS.matcher(email).matches()) {
+        val error = if (email.isNotBlank() && !email.matches(emailRegex)) {
             "Formato de correo inválido"
         } else {
             null
@@ -53,14 +55,6 @@ class LoginViewModel(
         _uiState.update { it.copy(password = password, passwordError = error) }
     }
 
-    /**
-     * [CORREGIDO] Flujo de login completo:
-     * 1. Autentica en Firebase.
-     * 2. Obtiene el token de Firebase.
-     * 3. Intercambia el token de Firebase por un token JWT interno del backend.
-     * 4. Guarda el token interno en la sesión.
-     * 5. Carga los datos del cliente desde el backend (ahora funcionará).
-     */
     fun login(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (!isFormValid()) {
             onError("Por favor, corrige los errores en el formulario.")
@@ -72,12 +66,10 @@ class LoginViewModel(
 
             try {
                 val state = _uiState.value
-                // 1. Login en Firebase
                 val loginResult = authRepository.login(state.email, state.password)
 
                 loginResult.fold(
                     onSuccess = { firebaseUser ->
-                        // 2. Obtener token de Firebase
                         val firebaseToken = authRepository.getFirebaseToken()
                         if (firebaseToken == null) {
                             onError("No se pudo obtener el token de Firebase.")
@@ -85,14 +77,11 @@ class LoginViewModel(
                             return@fold
                         }
 
-                        // 3. Intercambiar por token JWT interno
                         val exchangeResult = authRepository.exchangeToken(firebaseToken)
                         exchangeResult.fold(
                             onSuccess = { internalToken ->
-                                // 4. Guardar sesión con el token INTERNO
                                 sessionManager.saveUserSession(state.email, internalToken)
 
-                                // 5. Cargar datos del cliente (ahora funcionará)
                                 val clienteResult = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
                                 clienteResult.fold(
                                     onSuccess = {

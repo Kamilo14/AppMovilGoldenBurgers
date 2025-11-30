@@ -27,8 +27,9 @@ fun EditAddressScreen(
     val context = LocalContext.current
     var ciudadMenuExpanded by remember { mutableStateOf(false) }
 
-    // Carga los datos de la dirección cuando la pantalla se muestra por primera vez
-    LaunchedEffect(addressId) {
+    // [CORREGIDO] Carga los datos iniciales (ciudades) y la dirección a editar
+    LaunchedEffect(Unit) {
+        viewModel.loadInitialData()
         viewModel.loadAddress(addressId)
     }
 

@@ -9,6 +9,7 @@ import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.ThemeManager
 import com.example.goldenburgers.navigation.AppNavigation
 import com.example.goldenburgers.repository.AuthRepository
+import com.example.goldenburgers.repository.ClienteNetworkSource
 import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.ui.theme.GolgerBurguerTheme
 import com.google.firebase.FirebaseApp
@@ -22,7 +23,10 @@ class MainActivity : ComponentActivity() {
         val themeManager = ThemeManager(this)
         val sessionManager = SessionManager(this)
         val authRepository = AuthRepository()
-        val clienteRepository = ClienteRepository(sessionManager)
+
+        // [CORREGIDO] Se crea e inyecta la nueva dependencia de red
+        val clienteNetworkSource = ClienteNetworkSource(sessionManager)
+        val clienteRepository = ClienteRepository(clienteNetworkSource)
 
         setContent {
             val isDarkMode by themeManager.isDarkMode.collectAsState(initial = false)
