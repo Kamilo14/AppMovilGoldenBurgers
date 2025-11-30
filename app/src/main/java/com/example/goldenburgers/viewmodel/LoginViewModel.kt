@@ -3,6 +3,7 @@ package com.example.goldenburgers.viewmodel
 import android.util.Patterns
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.repository.AuthRepository
 import com.example.goldenburgers.repository.ClienteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -27,7 +28,8 @@ data class LoginUiState(
  */
 class LoginViewModel(
     private val authRepository: AuthRepository,
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val sessionManager: SessionManager // Inyectamos SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(LoginUiState())
@@ -53,7 +55,7 @@ class LoginViewModel(
 
     /**
      * Login con Firebase Authentication
-     * Después de autenticar, carga la información del cliente desde el backend
+     * Después de autenticar, guarda el token y carga la información del cliente desde el backend
      */
     fun login(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (!isFormValid()) {
@@ -66,24 +68,37 @@ class LoginViewModel(
 
             try {
                 val state = _uiState.value
+                // 1. Login en Firebase
                 val loginResult = authRepository.login(state.email, state.password)
 
                 loginResult.fold(
                     onSuccess = { firebaseUser ->
-                        // Cargar información del cliente desde el backend
                         viewModelScope.launch {
-                            val clienteResult = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
+                            // 2. Obtener Token JWT y guardar sesión inmediatamente
+                            val token = authRepository.getAuthToken()
+                            if (token != null) {
+                                sessionManager.saveUserSession(state.email, token)
+                                
+                                // 3. Ahora sí, cargar información del cliente desde el backend (ClienteRepository leerá el token guardado)
+                                val clienteResult = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
 
-                            clienteResult.fold(
-                                onSuccess = {
-                                    _uiState.update { it.copy(isLoading = false) }
-                                    onSuccess()
-                                },
-                                onFailure = { exception ->
-                                    _uiState.update { it.copy(isLoading = false) }
-                                    onError("Error al cargar datos del usuario: ${exception.message}")
-                                }
-                            )
+                                clienteResult.fold(
+                                    onSuccess = {
+                                        _uiState.update { it.copy(isLoading = false) }
+                                        onSuccess()
+                                    },
+                                    onFailure = { exception ->
+                                        _uiState.update { it.copy(isLoading = false) }
+                                        // Aunque falle la carga de perfil, el login fue exitoso.
+                                        // Podríamos dejar pasar al usuario o mostrar error.
+                                        // Mostramos error para depurar el 403 si persiste.
+                                        onError("Error al cargar datos del usuario: ${exception.message}")
+                                    }
+                                )
+                            } else {
+                                _uiState.update { it.copy(isLoading = false) }
+                                onError("Error al obtener token de autenticación")
+                            }
                         }
                     },
                     onFailure = { exception ->
@@ -106,4 +121,3 @@ class LoginViewModel(
                 state.passwordError == null
     }
 }
-
