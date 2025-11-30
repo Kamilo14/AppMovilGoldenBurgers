@@ -23,6 +23,7 @@ import com.example.goldenburgers.model.ThemeManager
 import com.example.goldenburgers.navigation.AppScreens
 import com.example.goldenburgers.navigation.BottomNavItem
 import com.example.goldenburgers.viewmodel.CatalogViewModel
+import com.example.goldenburgers.viewmodel.EditProfileViewModel
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -30,7 +31,8 @@ fun MainScreen(
     mainNavController: NavController,
     sessionManager: SessionManager,
     themeManager: ThemeManager,
-    catalogViewModel: CatalogViewModel
+    catalogViewModel: CatalogViewModel,
+    profileViewModel: EditProfileViewModel // [CORREGIDO] Se añade el ViewModel que necesita ProfileScreen
 ) {
     val bottomBarNavController = rememberNavController()
 
@@ -39,7 +41,6 @@ fun MainScreen(
     }
 
     Scaffold(
-        // [CORREGIDO] Se usa el color de fondo del tema actual
         containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomNavigationBar(navController = bottomBarNavController) }
     ) { innerPadding ->
@@ -49,7 +50,8 @@ fun MainScreen(
                 bottomBarNavController = bottomBarNavController,
                 sessionManager = sessionManager,
                 themeManager = themeManager,
-                catalogViewModel = catalogViewModel
+                catalogViewModel = catalogViewModel,
+                profileViewModel = profileViewModel // [CORREGIDO] Se pasa el ViewModel al grafo de navegación
             )
         }
     }
@@ -60,7 +62,6 @@ fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(BottomNavItem.Home, BottomNavItem.Favorites, BottomNavItem.Cart, BottomNavItem.Profile)
 
     NavigationBar(
-        // [CORREGIDO] Se usan colores del tema para que se adapten
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -71,7 +72,6 @@ fun BottomNavigationBar(navController: NavHostController) {
                 selected = currentRoute == item.route,
                 label = { Text(text = item.title) },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.title) },
-                // [CORREGIDO] Se usan colores del tema para los ítems
                 colors = NavigationBarItemDefaults.colors(
                     selectedIconColor = MaterialTheme.colorScheme.onPrimary,
                     selectedTextColor = MaterialTheme.colorScheme.primary,
@@ -97,7 +97,8 @@ fun BottomNavGraph(
     bottomBarNavController: NavHostController,
     sessionManager: SessionManager,
     themeManager: ThemeManager,
-    catalogViewModel: CatalogViewModel
+    catalogViewModel: CatalogViewModel,
+    profileViewModel: EditProfileViewModel // [CORREGIDO] Se añade el ViewModel que necesita ProfileScreen
 ) {
     NavHost(
         navController = bottomBarNavController,
@@ -121,7 +122,8 @@ fun BottomNavGraph(
                 navController = mainNavController,
                 sessionManager = sessionManager,
                 themeManager = themeManager,
-                catalogViewModel = catalogViewModel
+                // [CORREGIDO] Se pasa el ViewModel correcto
+                profileViewModel = profileViewModel
             )
         }
     }

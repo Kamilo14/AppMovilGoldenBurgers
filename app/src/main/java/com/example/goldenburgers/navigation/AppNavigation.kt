@@ -19,10 +19,14 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
+import com.example.goldenburgers.model.ProductNetworkSource
 import com.example.goldenburgers.model.ProductRepository
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.ThemeManager
 import com.example.goldenburgers.repository.*
+import com.example.goldenburgers.service.ExternalApiClient
+import com.example.goldenburgers.service.NominatimApiService
+import com.example.goldenburgers.service.OsrmApiService
 import com.example.goldenburgers.view.*
 import com.example.goldenburgers.viewmodel.*
 
@@ -36,22 +40,28 @@ fun AppNavigation(
 ) {
     val navController = rememberNavController()
 
-    // --- Repositorios ---
-    val favoritesRepository = FavoritesRepository(context, sessionManager)
-    val productRepository = ProductRepository(sessionManager, favoritesRepository)
-    val pedidoRepository = PedidoRepository(sessionManager)
-    val routingRepository = RoutingRepository() // [NUEVO]
+    val nominatimApi = ExternalApiClient.createService(NominatimApiService::class.java, "https://nominatim.openstreetmap.org/")
+    val osrmApi = ExternalApiClient.createService(OsrmApiService::class.java, "https://router.project-osrm.org/")
 
-    // --- ViewModels ---
+    val productNetworkSource = ProductNetworkSource(sessionManager)
+    val favoritesRepository = FavoritesRepository(context, sessionManager)
+    val productRepository = ProductRepository(productNetworkSource, favoritesRepository)
+    
+    val pedidoNetworkSource = PedidoNetworkSource(sessionManager)
+    val pedidoRepository = PedidoRepository(pedidoNetworkSource)
+    
+    val routingRepository = RoutingRepository(nominatimApi, osrmApi)
+
+    val registerViewModelFactory = RegisterViewModelFactory(authRepository, clienteRepository, sessionManager)
+
     val catalogViewModel: CatalogViewModel = viewModel { CatalogViewModelFactory(productRepository, sessionManager, clienteRepository).create(CatalogViewModel::class.java) }
-    // [CORREGIDO] Se pasa la nueva dependencia routingRepository a la factory
     val addressViewModel: AddressViewModel = viewModel { AddressViewModelFactory(clienteRepository, authRepository, routingRepository).create(AddressViewModel::class.java) }
     val editAddressViewModel: EditAddressViewModel = viewModel { EditAddressViewModelFactory(clienteRepository, authRepository).create(EditAddressViewModel::class.java) }
     val pedidoViewModel: PedidoViewModel = viewModel { PedidoViewModelFactory(pedidoRepository, clienteRepository, authRepository).create(PedidoViewModel::class.java) }
     val editProfileViewModel: EditProfileViewModel = viewModel { EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager).create(EditProfileViewModel::class.java) }
     val fakePaymentViewModel: FakePaymentViewModel = viewModel { FakePaymentViewModelFactory(pedidoRepository).create(FakePaymentViewModel::class.java) }
 
-
+    // [CORRECCIÓN CLAVE] Se usa 'initial' para collectAsState
     val loggedInUserEmail by sessionManager.loggedInUserEmailFlow.collectAsState(initial = "")
     val startDestination = if (!loggedInUserEmail.isNullOrBlank()) "main_flow" else AppScreens.WelcomeScreen.route
 
@@ -61,28 +71,31 @@ fun AppNavigation(
         NavHost(navController = navController, startDestination = startDestination) {
             val slideIn = slideInHorizontally(animationSpec = tween(300)) { it }
             val slideOut = slideOutHorizontally(animationSpec = tween(300)) { -it }
-            
+
             composable(AppScreens.WelcomeScreen.route) { WelcomeScreen(navController) }
             composable(AppScreens.LoginScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
-                 val loginViewModel: LoginViewModel = viewModel { LoginViewModelFactory(authRepository, clienteRepository, sessionManager).create(LoginViewModel::class.java) }
-                 LoginScreen(navController, loginViewModel)
+                val loginViewModel: LoginViewModel = viewModel { LoginViewModelFactory(authRepository, clienteRepository, sessionManager).create(LoginViewModel::class.java) }
+                LoginScreen(navController, loginViewModel)
             }
+            
             composable(AppScreens.RegisterStep1Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep1Screen(navController, registerViewModel) 
             }
             composable(AppScreens.RegisterStep2Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep2Screen(navController, registerViewModel) 
             }
             composable(AppScreens.RegisterStep3Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep3Screen(navController, registerViewModel) 
             }
+            
             composable(AppScreens.RegisterStep5Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
-                RegisterStep5Screen(navController, registerViewModel, sessionManager, clienteRepository) 
+                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
+                RegisterStep5Screen(navController, registerViewModel) 
             }
+
             composable(AppScreens.EditProfileScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
                 EditProfileScreen(navController = navController, viewModel = editProfileViewModel)
             }
@@ -99,8 +112,6 @@ fun AppNavigation(
             composable(AppScreens.CheckoutScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
                 CheckoutScreen(navController, catalogViewModel, addressViewModel, pedidoViewModel, editProfileViewModel)
             }
-
-            // Flujo de pago
             composable(
                 route = "${AppScreens.FakePaymentScreen.route}/{orderId}/{totalAmount}",
                 arguments = listOf(
@@ -119,14 +130,17 @@ fun AppNavigation(
                 val wasSuccessful = backStackEntry.arguments?.getBoolean("wasSuccessful") ?: false
                 PaymentResultScreen(navController, wasSuccessful)
             }
-            
-            // Historial de Pedidos
             composable(AppScreens.OrderHistoryScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
                 OrderHistoryScreen(navController = navController, viewModel = pedidoViewModel)
             }
-
             composable("main_flow", enterTransition = { fadeIn(animationSpec = tween(500)) }) {
-                MainScreen(mainNavController = navController, sessionManager = sessionManager, themeManager = themeManager, catalogViewModel = catalogViewModel)
+                MainScreen(
+                    mainNavController = navController, 
+                    sessionManager = sessionManager, 
+                    themeManager = themeManager, 
+                    catalogViewModel = catalogViewModel,
+                    profileViewModel = editProfileViewModel
+                )
             }
         }
     }

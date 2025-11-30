@@ -11,6 +11,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.SpanStyle
 import androidx.compose.ui.text.buildAnnotatedString
@@ -40,7 +41,6 @@ fun WelcomeScreen(navController: NavController) {
             horizontalAlignment = Alignment.CenterHorizontally,
         ) {
 
-            // [CORREGIDO] Se usa buildAnnotatedString para aplicar estilos diferentes
             Text(
                 text = buildAnnotatedString {
                     withStyle(style = SpanStyle(color = Color(0xFFFFD700), fontSize = 82.sp)) {
@@ -53,20 +53,10 @@ fun WelcomeScreen(navController: NavController) {
                     append("urgers")
                 },
                 style = MaterialTheme.typography.displayLarge,
-                color = Color.White, // Color por defecto para el resto del texto
+                color = Color.White,
                 textAlign = TextAlign.Center
             )
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            /*
-            Text(
-                text = "El sabor que te hace volver",
-                style = MaterialTheme.typography.headlineSmall,
-                color = Color.White.copy(alpha = 0.8f),
-                textAlign = TextAlign.Center
-            )
-            */
             Spacer(modifier = Modifier.weight(1f))
 
             Button(
@@ -74,6 +64,7 @@ fun WelcomeScreen(navController: NavController) {
                 modifier = Modifier
                     .fillMaxWidth()
                     .height(50.dp)
+                    .testTag("login_button") // [NUEVO] Etiqueta para el test de UI
             ) {
                 Text("Iniciar Sesión")
             }

@@ -28,6 +28,7 @@ import androidx.compose.ui.draw.scale
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -49,6 +50,10 @@ fun HomeScreen(catalogViewModel: CatalogViewModel) {
     val categories = listOf("Burgers", "Acompañamientos", "Refrescos", "Kids")
     var selectedCategory by remember { mutableStateOf("Burgers") }
     var selectedProduct by remember { mutableStateOf<Producto?>(null) }
+
+    LaunchedEffect(Unit) {
+        catalogViewModel.loadInitialData()
+    }
 
     val displayedProducts = remember(uiState.products, selectedCategory) {
         uiState.products.filter { it.categoria.equals(selectedCategory, ignoreCase = true) }
@@ -88,7 +93,8 @@ fun BrandHeader() {
     Row(
         modifier = Modifier
             .fillMaxWidth()
-            .padding(top = 16.dp, bottom = 8.dp),
+            .padding(top = 16.dp, bottom = 8.dp)
+            .testTag("brand_header"), // Etiqueta para el test
         horizontalArrangement = Arrangement.Center,
         verticalAlignment = Alignment.CenterVertically
     ) {
@@ -139,8 +145,8 @@ fun ProductCard(product: Producto, viewModel: CatalogViewModel, onProductClick: 
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(product.imagenUrl)
                         .crossfade(true)
-                        .placeholder(R.drawable.imagencarga) // [CORREGIDO]
-                        .error(R.drawable.imagencarga)       // [CORREGIDO]
+                        .placeholder(R.drawable.imagencarga)
+                        .error(R.drawable.imagencarga)
                         .build(),
                     contentDescription = product.nombreProducto,
                     modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
@@ -179,8 +185,8 @@ fun ProductDetailDialog(product: Producto, onDismiss: () -> Unit) {
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(product.imagenUrl)
                         .crossfade(true)
-                        .placeholder(R.drawable.imagencarga) // [CORREGIDO]
-                        .error(R.drawable.imagencarga)       // [CORREGIDO]
+                        .placeholder(R.drawable.imagencarga)
+                        .error(R.drawable.imagencarga)
                         .build(),
                     contentDescription = product.nombreProducto,
                     modifier = Modifier.height(200.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)),
