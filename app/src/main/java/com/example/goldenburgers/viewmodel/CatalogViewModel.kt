@@ -12,37 +12,23 @@ import kotlinx.coroutines.launch
 import java.text.NumberFormat
 import java.util.Locale
 
-
-/**
- * Data class para representar un item dentro del carrito de compras.
- */
 data class CartItem(
     val product: Producto,
     val quantity: Int
 )
 
-/**
- * El estado ahora incluye el nombre del usuario logueado.
- */
 data class CatalogUiState(
     val products: List<Producto> = emptyList(),
     val favorites: List<Producto> = emptyList(),
     val cartItems: List<CartItem> = emptyList(),
-    val userName: String? = null, // <-- AÑADIDO
+    val userName: String? = null,
     val cartSubtotal: Double = 0.0
-) {
-    // Calculamos el subtotal dinámicamente si no viene en el constructor,
-    // pero para simplificar y evitar loops, mejor lo calculamos al actualizar el estado.
-}
+)
 
-/**
- * [ACTUALIZADO] ViewModel ahora recibe SessionManager y carga el nombre del usuario.
- * Necesitamos ClienteRepository para buscar al usuario, ya no ProductRepository.
- */
 class CatalogViewModel(
-    val repository: ProductRepository,
+    private val repository: ProductRepository,
     private val sessionManager: SessionManager,
-    private val clienteRepository: ClienteRepository? = null // Opcional por compatibilidad temporal
+    private val clienteRepository: ClienteRepository? = null
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CatalogUiState())
@@ -51,27 +37,18 @@ class CatalogViewModel(
     init {
         observeProducts()
         observeFavorites()
-        loadUserName() // <-- AÑADIDO
+        loadUserName()
     }
 
-    /**
-     * [NUEVO] Carga el nombre del usuario actual y lo pone en el estado.
-     */
     fun loadUserName() {
         viewModelScope.launch {
             val userEmail = sessionManager.loggedInUserEmailFlow.first()
             if (!userEmail.isNullOrBlank()) {
-                // TODO: Idealmente deberíamos tener un método para buscar por email en ClienteRepository
-                // O usar el ID del usuario logueado si SessionManager lo tuviera.
-                // Por ahora, intentamos obtener el cliente actual del repositorio si ya se cargó.
                 val cliente = clienteRepository?.currentCliente?.value
-                
                 if (cliente != null) {
-                     _uiState.update { it.copy(userName = cliente.nombreCliente) }
+                    _uiState.update { it.copy(userName = cliente.nombreCliente) }
                 } else {
-                    // Si no tenemos repositorio de clientes inyectado o no hay cliente cargado,
-                    // usamos el email como fallback (solo la parte antes del @)
-                    val nameFromEmail = userEmail.split("@").firstOrNull() ?: "Usuario"
+                    val nameFromEmail = userEmail.split("@")[0]
                     _uiState.update { it.copy(userName = nameFromEmail) }
                 }
             }
@@ -97,28 +74,13 @@ class CatalogViewModel(
     fun toggleFavorite(productId: Long?, isCurrentlyFavorite: Boolean) {
         if (productId == null) return
         
-        // Actualizamos el estado localmente para reflejar el cambio en la UI inmediatamente
-        _uiState.update { currentState ->
-            val currentFavorites = currentState.favorites.toMutableList()
-            if (isCurrentlyFavorite) {
-                // Si ya es favorito, lo quitamos
-                currentFavorites.removeAll { it.idProducto == productId }
-            } else {
-                // Si no es favorito, lo buscamos en la lista de productos y lo agregamos
-                val product = currentState.products.find { it.idProducto == productId }
-                if (product != null) {
-                    currentFavorites.add(product)
-                }
-            }
-            currentState.copy(favorites = currentFavorites)
-        }
-
-        // TODO: Implementar persistencia en repositorio cuando el backend lo soporte
-        /*
         viewModelScope.launch(Dispatchers.IO) {
-            repository.updateFavorite(productId, !isCurrentlyFavorite)
+            if (isCurrentlyFavorite) {
+                repository.removeFavorite(productId)
+            } else {
+                repository.addFavorite(productId)
+            }
         }
-        */
     }
 
     // --- LÓGICA DEL CARRITO ---
@@ -177,9 +139,6 @@ class CatalogViewModel(
     }
 }
 
-/**
- * Función de extensión para formatear un Double como moneda Chilena (CLP).
- */
 fun Double.toCurrencyFormat(): String {
     val format = NumberFormat.getCurrencyInstance(Locale.forLanguageTag("es-CL"))
     format.maximumFractionDigits = 0

@@ -111,10 +111,13 @@ fun BottomNavGraph(
             FavoritesScreen(catalogViewModel = catalogViewModel)
         }
         composable(AppScreens.CartScreen.route) {
-            CartScreen(catalogViewModel = catalogViewModel, onCheckoutClick = { /* TODO */ })
+            // [CORREGIDO] La acción onCheckoutClick ahora navega a la pantalla de Checkout.
+            CartScreen(catalogViewModel = catalogViewModel) {
+                mainNavController.navigate(AppScreens.CheckoutScreen.route)
+            }
         }
         composable(AppScreens.ProfileScreen.route) {
-            // [CORREGIDO] ProfileScreen ya no necesita el addressViewModel
+            // ProfileScreen ya no necesita el addressViewModel
             ProfileScreen(
                 navController = mainNavController,
                 sessionManager = sessionManager,

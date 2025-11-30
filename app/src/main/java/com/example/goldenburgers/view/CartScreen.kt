@@ -8,6 +8,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.Remove
+import androidx.compose.material.icons.filled.ShoppingCart
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -17,15 +18,15 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.goldenburgers.R
+import com.example.goldenburgers.viewmodel.CartItem
 import com.example.goldenburgers.viewmodel.CatalogViewModel
 import com.example.goldenburgers.viewmodel.toCurrencyFormat
-import com.example.goldenburgers.viewmodel.CartItem
-
 
 @Composable
 fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) {
@@ -38,10 +39,33 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
         Spacer(modifier = Modifier.height(16.dp))
 
         if (uiState.cartItems.isEmpty()) {
+            // Vista para el carrito vacío
             Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
-                Text("Tu carrito está vacío", style = MaterialTheme.typography.bodyLarge)
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Icon(
+                        imageVector = Icons.Default.ShoppingCart,
+                        contentDescription = "Carrito vacío",
+                        modifier = Modifier.size(80.dp),
+                        tint = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.5f)
+                    )
+                    Spacer(modifier = Modifier.height(24.dp))
+                    Text(
+                        text = "Tu carrito está vacío",
+                        style = MaterialTheme.typography.headlineSmall,
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Spacer(modifier = Modifier.height(8.dp))
+                    Text(
+                        text = "Añade productos desde el catálogo para verlos aquí.",
+                        style = MaterialTheme.typography.bodyLarge,
+                        textAlign = TextAlign.Center,
+                        modifier = Modifier.padding(horizontal = 32.dp),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
             }
         } else {
+            // Vista para cuando hay items en el carrito
             LazyColumn(
                 modifier = Modifier.weight(1f),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -51,7 +75,6 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            // [CORREGIDO] Se usa HorizontalDivider en lugar del obsoleto Divider
             HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             Row(
@@ -59,8 +82,19 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
                 horizontalArrangement = Arrangement.SpaceBetween,
                 verticalAlignment = Alignment.CenterVertically
             ) {
-                Text("Total:", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Text(uiState.cartSubtotal.toCurrencyFormat(), style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary)
+                // [CORREGIDO] Se añade un color explícito al texto "Total:"
+                Text(
+                    text = "Total:",
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                Text(
+                    text = uiState.cartSubtotal.toCurrencyFormat(),
+                    style = MaterialTheme.typography.titleLarge,
+                    fontWeight = FontWeight.Bold,
+                    color = MaterialTheme.colorScheme.primary
+                )
             }
             Spacer(modifier = Modifier.height(16.dp))
             Button(
@@ -85,7 +119,6 @@ fun CartItemRow(item: CartItem, viewModel: CatalogViewModel) {
             modifier = Modifier.padding(8.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            // Imagen
             if (item.product.imagenUrl != null) {
                 AsyncImage(
                     model = ImageRequest.Builder(LocalContext.current)
