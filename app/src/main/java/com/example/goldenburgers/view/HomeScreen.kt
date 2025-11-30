@@ -142,7 +142,8 @@ fun ProductCard(product: Producto, viewModel: CatalogViewModel, onProductClick: 
                             .crossfade(true)
                             .placeholder(R.drawable.goldencarga)
                             .error(R.drawable.goldencarga)
-                            .memoryCachePolicy(CachePolicy.DISABLED) // [CORREGIDO] Deshabilitar caché de memoria
+                            .memoryCachePolicy(CachePolicy.DISABLED)
+                            .diskCachePolicy(CachePolicy.DISABLED)
                             .build(),
                         contentDescription = product.nombreProducto,
                         modifier = Modifier.fillMaxSize().clip(RoundedCornerShape(topStart = 12.dp, topEnd = 12.dp)),
@@ -186,7 +187,8 @@ fun ProductDetailDialog(product: Producto, onDismiss: () -> Unit) {
                         .crossfade(true)
                         .placeholder(R.drawable.goldencarga)
                         .error(R.drawable.goldencarga)
-                        .memoryCachePolicy(CachePolicy.DISABLED) // [CORREGIDO] Deshabilitar caché de memoria
+                        .memoryCachePolicy(CachePolicy.DISABLED)
+                        .diskCachePolicy(CachePolicy.DISABLED)
                         .build(),
                     contentDescription = product.nombreProducto,
                     modifier = Modifier.height(200.dp).fillMaxWidth().clip(RoundedCornerShape(12.dp)),

@@ -1,8 +1,8 @@
 package com.example.goldenburgers.navigation
 
+import android.content.Context
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInHorizontally
 import androidx.compose.animation.slideOutHorizontally
 import androidx.compose.foundation.layout.Box
@@ -19,88 +19,111 @@ import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
 import androidx.navigation.navArgument
-import com.example.goldenburgers.view.EditProfileScreen
+import com.example.goldenburgers.model.ProductRepository
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.ThemeManager
+import com.example.goldenburgers.repository.AuthRepository
 import com.example.goldenburgers.repository.ClienteRepository
+import com.example.goldenburgers.repository.FavoritesRepository
+import com.example.goldenburgers.repository.PedidoRepository
 import com.example.goldenburgers.view.*
 import com.example.goldenburgers.viewmodel.*
 
 @Composable
 fun AppNavigation(
+    context: Context, 
     sessionManager: SessionManager,
     themeManager: ThemeManager,
-    authRepository: com.example.goldenburgers.repository.AuthRepository,
+    authRepository: AuthRepository,
     clienteRepository: ClienteRepository
 ) {
     val navController = rememberNavController()
 
-    // --- Creación de ViewModels ---
-    val loginViewModel: LoginViewModel = viewModel(
-        factory = LoginViewModelFactory(authRepository, clienteRepository, sessionManager)
-    )
-    val registerViewModel: RegisterViewModel = viewModel(
-        factory = RegisterViewModelFactory(authRepository)
-    )
-    val editProfileViewModel: EditProfileViewModel = viewModel(
-        factory = EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager)
-    )
-    val productRepository = com.example.goldenburgers.model.ProductRepository(sessionManager)
-    val catalogViewModel: CatalogViewModel = viewModel(
-        factory = CatalogViewModelFactory(productRepository, sessionManager, clienteRepository)
-    )
-    val addressViewModel: AddressViewModel = viewModel(
-        factory = AddressViewModelFactory(clienteRepository, authRepository)
-    )
-    val editAddressViewModel: EditAddressViewModel = viewModel(
-        factory = EditAddressViewModelFactory(clienteRepository, authRepository)
-    )
+    // --- Repositorios ---
+    val favoritesRepository = FavoritesRepository(context, sessionManager)
+    val productRepository = ProductRepository(sessionManager, favoritesRepository)
+    val pedidoRepository = PedidoRepository(sessionManager)
 
-    // --- Lógica de Arranque ---
+    // --- ViewModels ---
+    val catalogViewModel: CatalogViewModel = viewModel { CatalogViewModelFactory(productRepository, sessionManager, clienteRepository).create(CatalogViewModel::class.java) }
+    val addressViewModel: AddressViewModel = viewModel { AddressViewModelFactory(clienteRepository, authRepository).create(AddressViewModel::class.java) }
+    val editAddressViewModel: EditAddressViewModel = viewModel { EditAddressViewModelFactory(clienteRepository, authRepository).create(EditAddressViewModel::class.java) }
+    val pedidoViewModel: PedidoViewModel = viewModel { PedidoViewModelFactory(pedidoRepository, clienteRepository).create(PedidoViewModel::class.java) }
+    val editProfileViewModel: EditProfileViewModel = viewModel { EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager).create(EditProfileViewModel::class.java) }
+    val fakePaymentViewModel: FakePaymentViewModel = viewModel { FakePaymentViewModelFactory(pedidoRepository).create(FakePaymentViewModel::class.java) }
+
+
     val loggedInUserEmail by sessionManager.loggedInUserEmailFlow.collectAsState(initial = "")
-
-    val isLoadingSession = loggedInUserEmail == ""
-    if (isLoadingSession) {
-        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        return
-    }
-
     val startDestination = if (!loggedInUserEmail.isNullOrBlank()) "main_flow" else AppScreens.WelcomeScreen.route
 
-    // --- Grafo de Navegación ---
-    NavHost(navController = navController, startDestination = startDestination) {
-        val slideDuration = 300
-        val slideIn = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(slideDuration))
-        val slideOut = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(slideDuration))
+    if (loggedInUserEmail == "") {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
+    } else {
+        NavHost(navController = navController, startDestination = startDestination) {
+            val slideIn = slideInHorizontally(animationSpec = tween(300)) { it }
+            val slideOut = slideOutHorizontally(animationSpec = tween(300)) { -it }
+            
+            composable(AppScreens.WelcomeScreen.route) { WelcomeScreen(navController) }
+            composable(AppScreens.LoginScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
+                 val loginViewModel: LoginViewModel = viewModel { LoginViewModelFactory(authRepository, clienteRepository, sessionManager).create(LoginViewModel::class.java) }
+                 LoginScreen(navController, loginViewModel)
+            }
+            composable(AppScreens.RegisterStep1Screen.route) { 
+                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                RegisterStep1Screen(navController, registerViewModel) 
+            }
+            composable(AppScreens.RegisterStep2Screen.route) { 
+                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                RegisterStep2Screen(navController, registerViewModel) 
+            }
+            composable(AppScreens.RegisterStep3Screen.route) { 
+                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                RegisterStep3Screen(navController, registerViewModel) 
+            }
+            composable(AppScreens.RegisterStep5Screen.route) { 
+                val registerViewModel: RegisterViewModel = viewModel { RegisterViewModelFactory(authRepository).create(RegisterViewModel::class.java) }
+                RegisterStep5Screen(navController, registerViewModel, sessionManager, clienteRepository) 
+            }
+            composable(AppScreens.EditProfileScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
+                EditProfileScreen(navController = navController, viewModel = editProfileViewModel)
+            }
+            composable(AppScreens.AddressListScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
+                AddressListScreen(navController = navController, viewModel = addressViewModel)
+            }
+            composable(
+                route = "${AppScreens.EditAddressScreen.route}/{addressId}",
+                arguments = listOf(navArgument("addressId") { type = NavType.LongType; defaultValue = -1L })
+            ) { backStackEntry ->
+                val addressId = backStackEntry.arguments?.getLong("addressId") ?: -1L
+                EditAddressScreen(navController = navController, viewModel = editAddressViewModel, addressId = addressId)
+            }
+            composable(AppScreens.CheckoutScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
+                CheckoutScreen(navController, catalogViewModel, addressViewModel, pedidoViewModel, editProfileViewModel)
+            }
 
-        composable(AppScreens.WelcomeScreen.route) { WelcomeScreen(navController) }
-        composable(AppScreens.LoginScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
-            LoginScreen(navController, loginViewModel)
-        }
+            // [CORREGIDO] Se pasa el catalogViewModel a FakePaymentScreen
+            composable(
+                route = "${AppScreens.FakePaymentScreen.route}/{orderId}/{totalAmount}",
+                arguments = listOf(
+                    navArgument("orderId") { type = NavType.LongType },
+                    navArgument("totalAmount") { type = NavType.FloatType }
+                )
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getLong("orderId") ?: -1L
+                val totalAmount = backStackEntry.arguments?.getFloat("totalAmount")?.toDouble() ?: 0.0
+                FakePaymentScreen(navController, fakePaymentViewModel, catalogViewModel, orderId, totalAmount)
+            }
+            composable(
+                route = "${AppScreens.PaymentResultScreen.route}/{wasSuccessful}",
+                arguments = listOf(navArgument("wasSuccessful") { type = NavType.BoolType })
+            ) { backStackEntry ->
+                val wasSuccessful = backStackEntry.arguments?.getBoolean("wasSuccessful") ?: false
+                PaymentResultScreen(navController, wasSuccessful)
+            }
 
-        // Flujo de Registro
-        composable(AppScreens.RegisterStep1Screen.route) { RegisterStep1Screen(navController, registerViewModel) }
-        composable(AppScreens.RegisterStep2Screen.route) { RegisterStep2Screen(navController, registerViewModel) }
-        composable(AppScreens.RegisterStep3Screen.route) { RegisterStep3Screen(navController, registerViewModel) }
-        composable(AppScreens.RegisterStep5Screen.route) { RegisterStep5Screen(navController, registerViewModel, sessionManager, clienteRepository) }
-
-        // Pantallas de Usuario
-        composable(AppScreens.EditProfileScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
-            EditProfileScreen(navController = navController, viewModel = editProfileViewModel)
-        }
-        composable(AppScreens.AddressListScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
-            AddressListScreen(navController = navController, viewModel = addressViewModel)
-        }
-        composable(
-            route = "${AppScreens.EditAddressScreen.route}/{addressId}",
-            arguments = listOf(navArgument("addressId") { type = NavType.LongType; defaultValue = -1L })
-        ) { backStackEntry ->
-            val addressId = backStackEntry.arguments?.getLong("addressId") ?: -1L
-            EditAddressScreen(navController = navController, viewModel = editAddressViewModel, addressId = addressId)
-        }
-
-        composable("main_flow", enterTransition = { fadeIn(animationSpec = tween(500)) }) {
-            MainScreen(mainNavController = navController, sessionManager = sessionManager, themeManager = themeManager, catalogViewModel = catalogViewModel)
+            composable("main_flow", enterTransition = { fadeIn(animationSpec = tween(500)) }) {
+                MainScreen(mainNavController = navController, sessionManager = sessionManager, themeManager = themeManager, catalogViewModel = catalogViewModel)
+            }
         }
     }
 }
