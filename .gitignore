@@ -13,3 +13,45 @@
 .externalNativeBuild
 .cxx
 local.properties
+
+# Archivos de configuración del IDE (IntelliJ/Android Studio)
+.idea/
+*.iws
+*.iml
+*.ipr
+
+# Archivos compilados y generados
+/build
+/app/build
+*.apk
+*.ap_
+*.dex
+*.class
+
+# Keystore files (Claves de firma y certificados)
+*.jks
+*.keystore
+*.pem
+*.p12
+*.key
+*.crt
+*.cer
+
+# Google Services (Firebase config)
+google-services.json
+GoogleService-Info.plist
+
+# Archivos de secretos y propiedades locales
+key.properties
+secrets.properties
+wallet.json
+local.properties
+gradle.properties
+
+# Archivos temporales del sistema
+.DS_Store
+Thumbs.db
+
+# Capturas y logs
+/captures
+*.hprof

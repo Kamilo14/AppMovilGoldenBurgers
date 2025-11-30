@@ -3,7 +3,6 @@ package com.example.goldenburgers.view
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.height
@@ -14,6 +13,7 @@ import androidx.compose.foundation.lazy.grid.LazyVerticalGrid
 import androidx.compose.foundation.lazy.grid.items
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Favorite
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
@@ -24,26 +24,41 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import com.example.goldenburgers.model.data.Producto
 import com.example.goldenburgers.viewmodel.CatalogViewModel
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun FavoritesScreen(catalogViewModel: CatalogViewModel) {
     val uiState by catalogViewModel.uiState.collectAsStateWithLifecycle()
     var selectedProduct by remember { mutableStateOf<Producto?>(null) }
 
-    Box(modifier = Modifier.fillMaxSize()) {
+    Column(
+        modifier = Modifier
+            .fillMaxSize()
+            .padding(16.dp)
+    ) {
+        Text(
+            text = "Mis Favoritos",
+            style = MaterialTheme.typography.headlineMedium,
+            fontWeight = FontWeight.Bold
+        )
+        Spacer(modifier = Modifier.height(16.dp))
+
         if (uiState.favorites.isEmpty()) {
-            EmptyFavoritesView()
+            Box(modifier = Modifier.weight(1f)) {
+                EmptyFavoritesView()
+            }
         } else {
             LazyVerticalGrid(
                 columns = GridCells.Fixed(2),
-                contentPadding = PaddingValues(16.dp),
                 horizontalArrangement = Arrangement.spacedBy(16.dp),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier.weight(1f)
             ) {
                 items(uiState.favorites) { product ->
                     ProductCard(
@@ -54,10 +69,10 @@ fun FavoritesScreen(catalogViewModel: CatalogViewModel) {
                 }
             }
         }
+    }
 
-        selectedProduct?.let { product ->
-            ProductDetailDialog(product = product, onDismiss = { selectedProduct = null })
-        }
+    selectedProduct?.let { product ->
+        ProductDetailDialog(product = product, onDismiss = { selectedProduct = null })
     }
 }
 
