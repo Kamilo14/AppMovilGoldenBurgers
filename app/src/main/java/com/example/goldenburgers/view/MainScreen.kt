@@ -10,7 +10,6 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -40,7 +39,8 @@ fun MainScreen(
     }
 
     Scaffold(
-        containerColor = Color.Black,
+        // [CORREGIDO] Se usa el color de fondo del tema actual
+        containerColor = MaterialTheme.colorScheme.background,
         bottomBar = { BottomNavigationBar(navController = bottomBarNavController) }
     ) { innerPadding ->
         Box(modifier = Modifier.padding(innerPadding)) {
@@ -60,8 +60,8 @@ fun BottomNavigationBar(navController: NavHostController) {
     val items = listOf(BottomNavItem.Home, BottomNavItem.Favorites, BottomNavItem.Cart, BottomNavItem.Profile)
 
     NavigationBar(
-        containerColor = Color.Black,
-        contentColor = Color.White
+        // [CORREGIDO] Se usan colores del tema para que se adapten
+        containerColor = MaterialTheme.colorScheme.surfaceVariant,
     ) {
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
@@ -71,12 +71,13 @@ fun BottomNavigationBar(navController: NavHostController) {
                 selected = currentRoute == item.route,
                 label = { Text(text = item.title) },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.title) },
+                // [CORREGIDO] Se usan colores del tema para los ítems
                 colors = NavigationBarItemDefaults.colors(
-                    selectedIconColor = Color.Black,
-                    selectedTextColor = Color(0xFFFFC107),
-                    indicatorColor = Color(0xFFFFC107),
-                    unselectedIconColor = Color.White,
-                    unselectedTextColor = Color.White
+                    selectedIconColor = MaterialTheme.colorScheme.onPrimary,
+                    selectedTextColor = MaterialTheme.colorScheme.primary,
+                    indicatorColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                    unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                    unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant
                 ),
                 onClick = {
                     navController.navigate(item.route) {
@@ -111,13 +112,11 @@ fun BottomNavGraph(
             FavoritesScreen(catalogViewModel = catalogViewModel)
         }
         composable(AppScreens.CartScreen.route) {
-            // [CORREGIDO] La acción onCheckoutClick ahora navega a la pantalla de Checkout.
             CartScreen(catalogViewModel = catalogViewModel) {
                 mainNavController.navigate(AppScreens.CheckoutScreen.route)
             }
         }
         composable(AppScreens.ProfileScreen.route) {
-            // ProfileScreen ya no necesita el addressViewModel
             ProfileScreen(
                 navController = mainNavController,
                 sessionManager = sessionManager,

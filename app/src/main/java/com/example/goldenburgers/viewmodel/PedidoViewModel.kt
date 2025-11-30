@@ -5,6 +5,7 @@ import androidx.lifecycle.viewModelScope
 import com.example.goldenburgers.model.data.DireccionCliente
 import com.example.goldenburgers.model.dto.DetallePedidoDTO
 import com.example.goldenburgers.model.dto.PedidoDTO
+import com.example.goldenburgers.repository.AuthRepository
 import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.repository.PedidoRepository
 import com.example.goldenburgers.view.DeliveryOption
@@ -23,16 +24,31 @@ data class PedidoUiState(
     val historialPedidos: List<PedidoDTO> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val ultimoPedidoCreado: PedidoDTO? = null // [CORREGIDO]
+    val ultimoPedidoCreado: PedidoDTO? = null
 )
 
 class PedidoViewModel(
     private val pedidoRepository: PedidoRepository,
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val authRepository: AuthRepository // [NUEVO] Inyectamos AuthRepository
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(PedidoUiState())
     val uiState: StateFlow<PedidoUiState> = _uiState.asStateFlow()
+    
+    // [NUEVO] Lógica de seguridad para asegurar que el cliente esté cargado
+    private suspend fun ensureClientLoaded(): Boolean {
+        if (clienteRepository.currentCliente.value != null) return true
+
+        val firebaseUser = authRepository.getCurrentUser()
+        if (firebaseUser == null) {
+            _uiState.update { it.copy(isLoading = false, error = "Error: Sesión de usuario no encontrada.") }
+            return false
+        }
+
+        val result = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
+        return result.isSuccess
+    }
 
     fun crearPedido(
         items: List<CartItem>,
@@ -44,7 +60,9 @@ class PedidoViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null, ultimoPedidoCreado = null) }
 
-            val cliente = clienteRepository.currentCliente.first()
+            if (!ensureClientLoaded()) return@launch
+
+            val cliente = clienteRepository.currentCliente.value
             if (cliente == null) {
                 _uiState.update { it.copy(isLoading = false, error = "No se pudo obtener la información del cliente.") }
                 return@launch
@@ -78,7 +96,6 @@ class PedidoViewModel(
 
             result.fold(
                 onSuccess = { nuevoPedido ->
-                    // [CORREGIDO] Guardamos el pedido recién creado en el estado
                     _uiState.update { it.copy(isLoading = false, ultimoPedidoCreado = nuevoPedido) }
                 },
                 onFailure = { exception ->
@@ -92,9 +109,11 @@ class PedidoViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true, error = null) }
 
-            val cliente = clienteRepository.currentCliente.first()
+            if (!ensureClientLoaded()) return@launch
+
+            val cliente = clienteRepository.currentCliente.value
             if (cliente == null) {
-                _uiState.update { it.copy(isLoading = false, error = "No se pudo obtener la información del cliente.") }
+                _uiState.update { it.copy(isLoading = false, error = "No se pudo obtener la información del cliente para cargar el historial.") }
                 return@launch
             }
 
@@ -110,7 +129,6 @@ class PedidoViewModel(
         }
     }
 
-    // [CORREGIDO] Resetea el estado para el próximo pedido
     fun resetUltimoPedido() {
         _uiState.update { it.copy(ultimoPedidoCreado = null) }
     }
