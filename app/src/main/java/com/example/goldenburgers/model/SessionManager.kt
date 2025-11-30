@@ -17,8 +17,9 @@ private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataS
  */
 class SessionManager(private val context: Context) {
 
-    // La clave para guardar el email del usuario.
+    // Claves para guardar los datos del usuario
     private val loggedInUserEmailKey = stringPreferencesKey("logged_in_user_email")
+    private val authTokenKey = stringPreferencesKey("auth_token") // NUEVO: Para guardar el token JWT
 
     /**
      * Un Flow que emite el email del usuario logueado.
@@ -28,23 +29,45 @@ class SessionManager(private val context: Context) {
         .map { preferences ->
             preferences[loggedInUserEmailKey]
         }
+        
+    /**
+     * Un Flow que emite el token de autenticación.
+     * Útil para clientes reactivos.
+     */
+    val authTokenFlow: Flow<String?> = context.sessionDataStore.data
+        .map { preferences ->
+            preferences[authTokenKey]
+        }
 
     /**
      * Guarda el email del usuario para marcarlo como logueado.
      * @param email El email del usuario que ha iniciado sesión.
      */
-    suspend fun saveUserSession(email: String) {
+    suspend fun saveUserSession(email: String, token: String? = null) {
         context.sessionDataStore.edit { preferences ->
             preferences[loggedInUserEmailKey] = email
+            if (token != null) {
+                preferences[authTokenKey] = token
+            }
+        }
+    }
+    
+    /**
+     * Guarda solo el token (por si se renueva independientemente del login)
+     */
+    suspend fun saveToken(token: String) {
+        context.sessionDataStore.edit { preferences ->
+            preferences[authTokenKey] = token
         }
     }
 
     /**
-     * Limpia la sesión del usuario, eliminando su email guardado.
+     * Limpia la sesión del usuario, eliminando email y token.
      */
     suspend fun clearUserSession() {
         context.sessionDataStore.edit { preferences ->
             preferences.remove(loggedInUserEmailKey)
+            preferences.remove(authTokenKey)
         }
     }
 }

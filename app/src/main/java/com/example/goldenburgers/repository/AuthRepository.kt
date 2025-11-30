@@ -3,6 +3,7 @@ package com.example.goldenburgers.repository
 import com.example.goldenburgers.model.data.Cliente
 import com.example.goldenburgers.model.dto.RegistrarClienteRequest
 import com.example.goldenburgers.model.mapper.toDomain
+import com.example.goldenburgers.service.AuthenticatedRetrofitClient
 import com.example.goldenburgers.service.RetrofitClient
 import com.google.firebase.auth.FirebaseAuth
 import com.google.firebase.auth.FirebaseUser
@@ -14,7 +15,9 @@ import kotlinx.coroutines.tasks.await
 class AuthRepository {
 
     private val firebaseAuth: FirebaseAuth = FirebaseAuth.getInstance()
-    private val gestionUsuarioApi = RetrofitClient.gestionUsuarioService
+    
+    // Usaremos el cliente autenticado dinámicamente, no una instancia estática
+    // private val gestionUsuarioApi = RetrofitClient.gestionUsuarioService 
 
     /**
      * Registrar un nuevo usuario con Firebase y en el backend
@@ -39,7 +42,14 @@ class AuthRepository {
 
             val firebaseUid = firebaseUser.uid
 
-            // 2. Registrar cliente en el backend
+            // 2. Obtener el token JWT del usuario recién creado
+            val token = firebaseUser.getIdToken(true).await().token
+                ?: return Result.failure(Exception("No se pudo obtener el token de autenticación"))
+
+            // 3. Crear un servicio autenticado temporal para esta petición
+            val authenticatedApi = AuthenticatedRetrofitClient(token).gestionUsuarioService
+
+            // 4. Registrar cliente en el backend usando el servicio autenticado
             val registrarClienteRequest = RegistrarClienteRequest(
                 idUsuario = firebaseUid,
                 email = email,
@@ -47,15 +57,19 @@ class AuthRepository {
                 telefonoCliente = telefonoCliente
             )
 
-            val response = gestionUsuarioApi.registrarCliente(registrarClienteRequest)
+            val response = authenticatedApi.registrarCliente(registrarClienteRequest)
 
             if (response.isSuccessful && response.body() != null) {
                 val clienteDTO = response.body()!!
                 Result.success(clienteDTO.toDomain())
             } else {
-                // Si falla el registro en backend, eliminar usuario de Firebase
-                firebaseUser.delete().await()
-                Result.failure(Exception("Error al registrar cliente: ${response.message()}"))
+                // Si falla el registro en backend, eliminar usuario de Firebase para mantener consistencia
+                try {
+                    firebaseUser.delete().await()
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                }
+                Result.failure(Exception("Error al registrar cliente en backend: ${response.code()} ${response.message()}"))
             }
         } catch (e: Exception) {
             Result.failure(e)
@@ -78,6 +92,20 @@ class AuthRepository {
             Result.success(user)
         } catch (e: Exception) {
             Result.failure(e)
+        }
+    }
+    
+    /**
+     * Obtener el token JWT de Firebase para autenticarse en el backend
+     */
+    suspend fun getAuthToken(): String? {
+        return try {
+            val user = firebaseAuth.currentUser ?: return null
+            val tokenResult = user.getIdToken(true).await()
+            tokenResult.token
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
         }
     }
 

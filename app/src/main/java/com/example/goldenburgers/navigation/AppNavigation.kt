@@ -49,9 +49,9 @@ fun AppNavigation(
         factory = EditProfileViewModelFactory(authRepository, clienteRepository)
     )
 
-    // TODO: El catálogo será implementado por otro desarrollador
-    // ProductRepository temporal creado para que compile
-    val productRepository = com.example.goldenburgers.model.ProductRepository()
+    // ProductRepository ahora recibe sessionManager
+    val productRepository = com.example.goldenburgers.model.ProductRepository(sessionManager)
+    
     val catalogViewModel: CatalogViewModel = viewModel(
         factory = CatalogViewModelFactory(productRepository, sessionManager)
     )

@@ -8,31 +8,45 @@ import com.example.goldenburgers.model.dto.DevolucionDTO
 //Ventas asociadas a boletas
 
 interface VentaApiService {
-    @GET("api/ventas")
+    // Ventas
+    @GET("ventas")
     suspend fun getVentas(): List<VentaDTO>
 
-    @POST("api/ventas")
+    @POST("ventas")
     suspend fun crearVenta(@Body venta: VentaDTO): VentaDTO
 
-    @GET("api/ventas/{id}")
+    @GET("ventas/{id}")
     suspend fun getVenta(@Path("id") id: Long): VentaDTO
 
+    @PUT("ventas/{id}")
+    suspend fun actualizarVenta(@Path("id") id: Long, @Body venta: VentaDTO): VentaDTO
 
-    @GET("api/boletas")
+    @DELETE("ventas/{id}")
+    suspend fun eliminarVenta(@Path("id") id: Long)
+
+    // Boletas
+    @GET("boletas")
     suspend fun getBoletas(): List<BoletaDTO>
 
-    @POST("api/boletas")
+    @POST("boletas")
     suspend fun crearBoleta(@Body boleta: BoletaDTO): BoletaDTO
 
-    @GET("api/boletas/{id}")
+    @GET("boletas/{id}")
     suspend fun getBoleta(@Path("id") id: Long): BoletaDTO
 
-    @POST("api/devoluciones")
+    @PUT("boletas/{id}")
+    suspend fun actualizarBoleta(@Path("id") id: Long, @Body boleta: BoletaDTO): BoletaDTO
+
+    @DELETE("boletas/{id}")
+    suspend fun eliminarBoleta(@Path("id") id: Long)
+
+    // Devoluciones
+    @POST("devoluciones")
     suspend fun crearDevolucion(@Body devolucion: DevolucionDTO): DevolucionDTO
 
-    @GET("api/devoluciones")
+    @GET("devoluciones")
     suspend fun getDevoluciones(): List<DevolucionDTO>
 
-    @GET("api/devoluciones/{id}")
+    @GET("devoluciones/{id}")
     suspend fun getDevolucion(@Path("id") id: Long): DevolucionDTO
 }

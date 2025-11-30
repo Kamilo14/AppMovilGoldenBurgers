@@ -5,19 +5,19 @@ import com.example.goldenburgers.model.dto.PedidoDTO
 
 
 interface PedidoApiService {
-    @GET("api/pedidos")
+    @GET("pedidos")
     suspend fun getPedidos(): List<PedidoDTO>
 
-    @GET("api/pedidos/{id}")
+    @GET("pedidos/{id}")
     suspend fun getPedido(@Path("id") id: Long): PedidoDTO
 
-    @GET("api/pedidos/cliente/{idCliente}")
+    @GET("pedidos/cliente/{idCliente}")
     suspend fun getPedidosPorCliente(@Path("idCliente") idCliente: Long): List<PedidoDTO>
 
-    @POST("api/pedidos/completo")
+    @POST("pedidos/completo")
     suspend fun crearPedidoCompleto(@Body pedido: PedidoDTO): PedidoDTO
 
-    @PUT("api/pedidos/cambiar-estado/{idPedido}/estado/{idEstado}")
+    @PUT("pedidos/cambiar-estado/{idPedido}/estado/{idEstado}")
     suspend fun cambiarEstadoPedido(
         @Path("idPedido") idPedido: Long,
         @Path("idEstado") idEstado: Long

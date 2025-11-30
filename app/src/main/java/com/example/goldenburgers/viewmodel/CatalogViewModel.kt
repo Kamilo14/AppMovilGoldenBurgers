@@ -1,10 +1,11 @@
-copackage com.example.goldenburgers.viewmodel
+package com.example.goldenburgers.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goldenburgers.model.ProductRepository
-import com.example.goldenburgers.model.Producto
+import com.example.goldenburgers.model.data.Producto
 import com.example.goldenburgers.model.SessionManager
+import com.example.goldenburgers.repository.ClienteRepository
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -27,18 +28,21 @@ data class CatalogUiState(
     val products: List<Producto> = emptyList(),
     val favorites: List<Producto> = emptyList(),
     val cartItems: List<CartItem> = emptyList(),
-    val userName: String? = null // <-- AÑADIDO
+    val userName: String? = null, // <-- AÑADIDO
+    val cartSubtotal: Double = 0.0
 ) {
-    val cartSubtotal: Double
-        get() = cartItems.sumOf { it.product.precio * it.quantity }
+    // Calculamos el subtotal dinámicamente si no viene en el constructor,
+    // pero para simplificar y evitar loops, mejor lo calculamos al actualizar el estado.
 }
 
 /**
  * [ACTUALIZADO] ViewModel ahora recibe SessionManager y carga el nombre del usuario.
+ * Necesitamos ClienteRepository para buscar al usuario, ya no ProductRepository.
  */
 class CatalogViewModel(
     val repository: ProductRepository,
-    private val sessionManager: SessionManager // <-- AÑADIDO
+    private val sessionManager: SessionManager,
+    private val clienteRepository: ClienteRepository? = null // Opcional por compatibilidad temporal
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(CatalogUiState())
@@ -56,9 +60,20 @@ class CatalogViewModel(
     fun loadUserName() {
         viewModelScope.launch {
             val userEmail = sessionManager.loggedInUserEmailFlow.first()
-            if (userEmail != null) {
-                val user = repository.findUserByEmail(userEmail)
-                _uiState.update { it.copy(userName = user?.fullName) }
+            if (!userEmail.isNullOrBlank()) {
+                // TODO: Idealmente deberíamos tener un método para buscar por email en ClienteRepository
+                // O usar el ID del usuario logueado si SessionManager lo tuviera.
+                // Por ahora, intentamos obtener el cliente actual del repositorio si ya se cargó.
+                val cliente = clienteRepository?.currentCliente?.value
+                
+                if (cliente != null) {
+                     _uiState.update { it.copy(userName = cliente.nombreCliente) }
+                } else {
+                    // Si no tenemos repositorio de clientes inyectado o no hay cliente cargado,
+                    // usamos el email como fallback (solo la parte antes del @)
+                    val nameFromEmail = userEmail.split("@").firstOrNull() ?: "Usuario"
+                    _uiState.update { it.copy(userName = nameFromEmail) }
+                }
             }
         }
     }
@@ -79,10 +94,31 @@ class CatalogViewModel(
         }
     }
 
-    fun toggleFavorite(productId: Int, isCurrentlyFavorite: Boolean) {
+    fun toggleFavorite(productId: Long?, isCurrentlyFavorite: Boolean) {
+        if (productId == null) return
+        
+        // Actualizamos el estado localmente para reflejar el cambio en la UI inmediatamente
+        _uiState.update { currentState ->
+            val currentFavorites = currentState.favorites.toMutableList()
+            if (isCurrentlyFavorite) {
+                // Si ya es favorito, lo quitamos
+                currentFavorites.removeAll { it.idProducto == productId }
+            } else {
+                // Si no es favorito, lo buscamos en la lista de productos y lo agregamos
+                val product = currentState.products.find { it.idProducto == productId }
+                if (product != null) {
+                    currentFavorites.add(product)
+                }
+            }
+            currentState.copy(favorites = currentFavorites)
+        }
+
+        // TODO: Implementar persistencia en repositorio cuando el backend lo soporte
+        /*
         viewModelScope.launch(Dispatchers.IO) {
             repository.updateFavorite(productId, !isCurrentlyFavorite)
         }
+        */
     }
 
     // --- LÓGICA DEL CARRITO ---
@@ -90,7 +126,7 @@ class CatalogViewModel(
     fun addToCart(product: Producto) {
         _uiState.update { currentState ->
             val cart = currentState.cartItems.toMutableList()
-            val existingItemIndex = cart.indexOfFirst { it.product.id == product.id }
+            val existingItemIndex = cart.indexOfFirst { it.product.idProducto == product.idProducto }
 
             if (existingItemIndex != -1) {
                 val existingItem = cart[existingItemIndex]
@@ -98,23 +134,28 @@ class CatalogViewModel(
             } else {
                 cart.add(CartItem(product = product, quantity = 1))
             }
-            currentState.copy(cartItems = cart)
+            
+            val newSubtotal = cart.sumOf { it.product.precioBase * it.quantity }
+            currentState.copy(cartItems = cart, cartSubtotal = newSubtotal)
         }
     }
 
-    fun increaseQuantity(productId: Int) {
+    fun increaseQuantity(productId: Long?) {
+        if(productId == null) return
         _uiState.update { currentState ->
             val updatedCart = currentState.cartItems.map {
-                if (it.product.id == productId) it.copy(quantity = it.quantity + 1) else it
+                if (it.product.idProducto == productId) it.copy(quantity = it.quantity + 1) else it
             }
-            currentState.copy(cartItems = updatedCart)
+            val newSubtotal = updatedCart.sumOf { it.product.precioBase * it.quantity }
+            currentState.copy(cartItems = updatedCart, cartSubtotal = newSubtotal)
         }
     }
 
-    fun decreaseQuantity(productId: Int) {
+    fun decreaseQuantity(productId: Long?) {
+        if(productId == null) return
         _uiState.update { currentState ->
             val cart = currentState.cartItems.toMutableList()
-            val itemIndex = cart.indexOfFirst { it.product.id == productId }
+            val itemIndex = cart.indexOfFirst { it.product.idProducto == productId }
 
             if (itemIndex != -1) {
                 val item = cart[itemIndex]
@@ -124,13 +165,14 @@ class CatalogViewModel(
                     cart.removeAt(itemIndex)
                 }
             }
-            currentState.copy(cartItems = cart)
+            val newSubtotal = cart.sumOf { it.product.precioBase * it.quantity }
+            currentState.copy(cartItems = cart, cartSubtotal = newSubtotal)
         }
     }
 
     fun clearCart() {
         _uiState.update { currentState ->
-            currentState.copy(cartItems = emptyList())
+            currentState.copy(cartItems = emptyList(), cartSubtotal = 0.0)
         }
     }
 }

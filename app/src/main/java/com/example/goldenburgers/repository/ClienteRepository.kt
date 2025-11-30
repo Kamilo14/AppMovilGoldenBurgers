@@ -173,7 +173,11 @@ class ClienteRepository {
         alias: String?
     ): Result<DireccionCliente> {
         return try {
+            // Obtenemos el ID del cliente actual del estado o pasamos 0 si no lo tenemos (debería tenerse)
+            val currentIdCliente = _currentCliente.value?.idCliente ?: 0L
+            
             val request = CrearDireccionRequest(
+                idCliente = currentIdCliente, // Necesario pasar idCliente aunque sea actualizar
                 idCiudad = idCiudad,
                 direccion = direccion,
                 alias = alias

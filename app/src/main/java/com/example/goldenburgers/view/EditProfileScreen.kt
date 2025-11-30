@@ -1,6 +1,5 @@
 package com.example.goldenburgers.view
 
-
 import android.Manifest
 import android.content.Context
 import android.content.pm.PackageManager
@@ -151,9 +150,17 @@ fun EditProfileScreen(
                 // Cada OutlinedTextField está conectado al estado del ViewModel.
                 // `value` lee el dato del estado, y `onValueChange` llama a la función correspondiente
                 // en el ViewModel para actualizarlo. Esto es la base de un flujo de datos unidireccional.
-                OutlinedTextField(value = uiState.fullName, onValueChange = viewModel::onFullNameChange, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth())
+                
+                // Corregido: Usamos las propiedades y métodos correctos del EditProfileUiState y ViewModel
+                OutlinedTextField(value = uiState.nombreCliente, onValueChange = viewModel::onNombreClienteChange, label = { Text("Nombre Completo") }, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(16.dp))
-                OutlinedTextField(value = uiState.phoneNumber, onValueChange = viewModel::onPhoneNumberChange, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(value = uiState.telefonoCliente, onValueChange = viewModel::onTelefonoClienteChange, label = { Text("Teléfono") }, modifier = Modifier.fillMaxWidth())
+                
+                // Nota: La edición de dirección (calle, número, ciudad, etc.) no está en EditProfileUiState actual.
+                // Si necesitas editar dirección, deberías agregarlo al ViewModel o tener una pantalla separada "Editar Direcciones".
+                // Por ahora, he comentado esos campos para que compile, ya que no existen en el ViewModel.
+
+                /*
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(value = uiState.street, onValueChange = viewModel::onStreetChange, label = { Text("Calle") }, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(16.dp))
@@ -164,6 +171,7 @@ fun EditProfileScreen(
                 OutlinedTextField(value = uiState.commune, onValueChange = viewModel::onCommuneChange, label = { Text("Comuna") }, modifier = Modifier.fillMaxWidth())
                 Spacer(Modifier.height(16.dp))
                 OutlinedTextField(value = uiState.region, onValueChange = viewModel::onRegionChange, label = { Text("Región") }, modifier = Modifier.fillMaxWidth())
+                */
 
                 Spacer(Modifier.height(32.dp))
 
@@ -199,4 +207,3 @@ private fun createImageUri(context: Context): Uri {
     val imageFile = File.createTempFile("JPEG_${timeStamp}_", ".jpg", context.cacheDir)
     return FileProvider.getUriForFile(context, "${context.packageName}.fileprovider", imageFile)
 }
-

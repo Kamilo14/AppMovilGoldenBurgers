@@ -16,7 +16,7 @@ interface GestionUsuarioApiService {
      * Registrar un nuevo cliente
      * POST /api/clientes
      */
-    @POST("api/clientes")
+    @POST("clientes")
     suspend fun registrarCliente(
         @Body request: RegistrarClienteRequest
     ): Response<ClienteDTO>
@@ -25,7 +25,7 @@ interface GestionUsuarioApiService {
      * Obtener cliente por ID
      * GET /api/clientes/{id}
      */
-    @GET("api/clientes/{id}")
+    @GET("clientes/{id}")
     suspend fun obtenerClientePorId(
         @Path("id") idCliente: Long
     ): Response<ClienteDTO>
@@ -34,7 +34,7 @@ interface GestionUsuarioApiService {
      * Obtener cliente por Firebase UID
      * GET /api/clientes/usuario/{firebaseUid}
      */
-    @GET("api/clientes/usuario/{firebaseUid}")
+    @GET("clientes/usuario/{firebaseUid}")
     suspend fun obtenerClientePorFirebaseUid(
         @Path("firebaseUid") firebaseUid: String
     ): Response<ClienteDTO>
@@ -43,7 +43,7 @@ interface GestionUsuarioApiService {
      * Actualizar propio perfil de cliente (nombre/teléfono)
      * PUT /api/clientes/perfil
      */
-    @PUT("api/clientes/perfil")
+    @PUT("clientes/perfil")
     suspend fun actualizarPerfil(
         @Body request: ActualizarPerfilClienteRequest
     ): Response<ClienteDTO>
@@ -54,7 +54,7 @@ interface GestionUsuarioApiService {
      * Crear nueva dirección para el cliente autenticado
      * POST /api/clientes/direcciones
      */
-    @POST("api/clientes/direcciones")
+    @POST("clientes/direcciones")
     suspend fun crearDireccion(
         @Body request: CrearDireccionRequest
     ): Response<DireccionClienteDTO>
@@ -63,7 +63,7 @@ interface GestionUsuarioApiService {
      * Obtener direcciones de un cliente
      * GET /api/clientes/{idCliente}/direcciones
      */
-    @GET("api/clientes/{idCliente}/direcciones")
+    @GET("clientes/{idCliente}/direcciones")
     suspend fun obtenerDirecciones(
         @Path("idCliente") idCliente: Long
     ): Response<List<DireccionClienteDTO>>
@@ -72,7 +72,7 @@ interface GestionUsuarioApiService {
      * Actualizar una dirección existente
      * PUT /api/clientes/direcciones/{id}
      */
-    @PUT("api/clientes/direcciones/{id}")
+    @PUT("clientes/direcciones/{id}")
     suspend fun actualizarDireccion(
         @Path("id") idDireccion: Long,
         @Body request: CrearDireccionRequest
@@ -82,7 +82,7 @@ interface GestionUsuarioApiService {
      * Eliminar una dirección
      * DELETE /api/clientes/direcciones/{id}
      */
-    @DELETE("api/clientes/direcciones/{id}")
+    @DELETE("clientes/direcciones/{id}")
     suspend fun eliminarDireccion(
         @Path("id") idDireccion: Long
     ): Response<Unit>
@@ -93,7 +93,7 @@ interface GestionUsuarioApiService {
      * Obtener todas las ciudades disponibles
      * GET /api/ciudades
      */
-    @GET("api/ciudades")
+    @GET("ciudades")
     suspend fun obtenerCiudades(): Response<List<CiudadDTO>>
 }
 
@@ -107,7 +107,7 @@ interface ApiGatewayService {
      * Login de usuario
      * POST /api/auth/login
      */
-    @POST("api/auth/login")
+    @POST("auth/login")
     suspend fun login(
         @Body request: LoginRequest
     ): Response<LoginResponse>
@@ -116,7 +116,7 @@ interface ApiGatewayService {
      * Refresh token
      * POST /api/auth/refresh
      */
-    @POST("api/auth/refresh")
+    @POST("auth/refresh")
     suspend fun refreshToken(
         @Body refreshToken: String
     ): Response<LoginResponse>

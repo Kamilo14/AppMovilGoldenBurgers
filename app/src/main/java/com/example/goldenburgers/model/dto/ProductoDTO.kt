@@ -9,5 +9,7 @@ data class ProductoDTO(
     @SerializedName("precio") val precio: Double,
     @SerializedName("imagen") val imagen: String?,
     @SerializedName("disponible") val disponible: Boolean,
-    @SerializedName("categoria") val categoria: CategoriaDTO?
+    // El backend envía "categoria" como String (nombre) y "idCategoria" como Long
+    @SerializedName("categoria") val categoria: String?, 
+    @SerializedName("idCategoria") val idCategoria: Long?
 )
