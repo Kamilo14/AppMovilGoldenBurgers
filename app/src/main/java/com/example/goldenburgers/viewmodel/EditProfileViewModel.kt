@@ -1,5 +1,7 @@
 package com.example.goldenburgers.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goldenburgers.model.SessionManager
@@ -9,49 +11,46 @@ import com.example.goldenburgers.repository.ClienteRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.flow.launchIn
+import kotlinx.coroutines.flow.onEach
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
-/**
- * Estado de la UI para la pantalla de edición de perfil
- */
 data class EditProfileUiState(
     val nombreCliente: String = "",
     val telefonoCliente: String = "",
     val email: String = "",
-    val profileImageUri: String? = null,  // Foto de perfil local (no se guarda en backend)
+    val profileImageUri: String? = null,
     val isLoading: Boolean = true,
     val cliente: Cliente? = null
 )
 
-/**
- * ViewModel para edición de perfil con API backend
- */
 class EditProfileViewModel(
     private val authRepository: AuthRepository,
     private val clienteRepository: ClienteRepository,
-    private val sessionManager: SessionManager // Inyectamos SessionManager
+    private val sessionManager: SessionManager,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditProfileUiState())
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
 
-    /**
-     * [CORREGIDO] Cargar datos del cliente actual desde el backend.
-     * La lógica de manejo de tokens es innecesaria aquí, ya que el ClienteRepository
-     * ya está configurado para usar el token guardado en SessionManager.
-     */
+    init {
+        sessionManager.profileImageUriFlow
+            .onEach { uri -> _uiState.update { it.copy(profileImageUri = uri) } }
+            .launchIn(viewModelScope)
+    }
+
     fun loadCurrentUser() {
         _uiState.update { it.copy(isLoading = true) }
 
         viewModelScope.launch {
             val firebaseUser = authRepository.getCurrentUser()
-
             if (firebaseUser != null) {
-                // El ClienteRepository se encargará de usar el token de sesión correcto.
-                val result = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
-
-                result.fold(
+                clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid).fold(
                     onSuccess = { cliente ->
                         _uiState.update {
                             it.copy(
@@ -63,39 +62,36 @@ class EditProfileViewModel(
                             )
                         }
                     },
-                    onFailure = {
-                        // Aquí podrías mostrar un mensaje de error si lo deseas
-                        _uiState.update { it.copy(isLoading = false) }
-                    }
+                    onFailure = { _uiState.update { it.copy(isLoading = false) } }
                 )
             } else {
-                // No hay usuario logueado
                 _uiState.update { it.copy(isLoading = false) }
             }
         }
     }
-
-    // --- Funciones para actualizar los campos del formulario ---
-    fun onNombreClienteChange(nombre: String) = _uiState.update {
-        it.copy(nombreCliente = nombre)
+    
+    private fun copyUriToInternalStorage(uriString: String): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(Uri.parse(uriString))
+            // [CORRECCIÓN DEFINITIVA] Se usa filesDir (almacenamiento permanente) en lugar de cacheDir (temporal)
+            val file = File(context.filesDir, "profile_pic_${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            inputStream?.copyTo(outputStream)
+            inputStream?.close()
+            outputStream.close()
+            Uri.fromFile(file).toString()
+        } catch (e: Exception) {
+            null
+        }
     }
 
-    fun onTelefonoClienteChange(telefono: String) = _uiState.update {
-        it.copy(telefonoCliente = telefono)
-    }
+    fun onNombreClienteChange(nombre: String) = _uiState.update { it.copy(nombreCliente = nombre) }
+    fun onTelefonoClienteChange(telefono: String) = _uiState.update { it.copy(telefonoCliente = telefono) }
+    fun onProfileImageChange(uri: String?) = _uiState.update { it.copy(profileImageUri = uri) }
 
-    fun onProfileImageChange(uri: String?) = _uiState.update {
-        it.copy(profileImageUri = uri)
-    }
-
-    /**
-     * Guardar cambios del perfil
-     */
     fun saveChanges(onSuccess: () -> Unit, onError: (String) -> Unit) {
         val currentState = _uiState.value
-        val cliente = currentState.cliente
-
-        if (cliente == null) {
+        if (currentState.cliente == null) {
             onError("No se pudo encontrar la información del cliente.")
             return
         }
@@ -103,13 +99,24 @@ class EditProfileViewModel(
         viewModelScope.launch {
             _uiState.update { it.copy(isLoading = true) }
 
-            val result = clienteRepository.actualizarPerfil(
+            val currentSavedUri = sessionManager.profileImageUriFlow.first()
+            if (currentState.profileImageUri != currentSavedUri) {
+                currentState.profileImageUri?.let { tempUri ->
+                    if (tempUri.startsWith("content://")) { 
+                        copyUriToInternalStorage(tempUri)?.let { permanentUri ->
+                            sessionManager.saveProfileImageUri(permanentUri)
+                        }
+                    } else if (tempUri.isBlank()) { // Si el usuario eliminó la foto
+                         sessionManager.saveProfileImageUri("")
+                    }
+                }
+            }
+
+            clienteRepository.actualizarPerfil(
                 nombreCliente = currentState.nombreCliente,
                 email = currentState.email,
                 telefonoCliente = currentState.telefonoCliente.ifBlank { null }
-            )
-
-            result.fold(
+            ).fold(
                 onSuccess = {
                     _uiState.update { it.copy(isLoading = false) }
                     onSuccess()

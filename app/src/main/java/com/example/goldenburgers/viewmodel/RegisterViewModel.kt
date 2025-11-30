@@ -1,5 +1,7 @@
 package com.example.goldenburgers.viewmodel
 
+import android.content.Context
+import android.net.Uri
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.goldenburgers.model.SessionManager
@@ -10,6 +12,8 @@ import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
+import java.io.File
+import java.io.FileOutputStream
 
 data class RegisterUiState(
     val email: String = "",
@@ -33,7 +37,8 @@ data class RegisterUiState(
 class RegisterViewModel(
     private val authRepository: AuthRepository,
     private val clienteRepository: ClienteRepository,
-    private val sessionManager: SessionManager
+    private val sessionManager: SessionManager,
+    private val context: Context
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(RegisterUiState())
@@ -41,44 +46,34 @@ class RegisterViewModel(
     
     private val emailRegex = Regex("[a-zA-Z0-9._-]+@[a-z]+\\.+[a-z]+")
 
-    private fun validateFullName(name: String): String? =
-        if (name.isBlank()) "El nombre no puede estar vacío" else if (name.length < 5) "El nombre es demasiado corto" else null
+    private fun validateFullName(name: String): String? = if (name.isBlank()) "El nombre no puede estar vacío" else if (name.length < 5) "El nombre es demasiado corto" else null
+    private fun validatePhoneNumber(phone: String): String? = if (phone.isBlank()) null else if (phone.length != 9 || !phone.all { it.isDigit() }) "Debe ser un número de 9 dígitos" else null
+    private fun validateDireccion(direccion: String): String? = if (direccion.isBlank()) "La dirección es obligatoria" else if (direccion.length < 5) "La dirección es demasiado corta" else null
 
-    private fun validatePhoneNumber(phone: String): String? =
-        if (phone.isBlank()) null else if (phone.length != 9 || !phone.all { it.isDigit() }) "Debe ser un número de 9 dígitos" else null
-
-    private fun validateDireccion(direccion: String): String? =
-        if (direccion.isBlank()) "La dirección es obligatoria" else if (direccion.length < 5) "La dirección es demasiado corta" else null
-
-    fun onEmailChange(email: String) = _uiState.update {
-        it.copy(email = email, emailError = if (email.isNotBlank() && !email.matches(emailRegex)) "Correo inválido" else null)
-    }
-
-    fun onPasswordChange(password: String) = _uiState.update {
-        it.copy(password = password, passwordError = if (password.length < 6) "Mínimo 6 caracteres" else null)
-    }
-
-    fun onFullNameChange(name: String) = _uiState.update {
-        it.copy(fullName = name, fullNameError = validateFullName(name))
-    }
-
-    fun onPhoneNumberChange(phone: String) = _uiState.update {
-        it.copy(phoneNumber = phone, phoneNumberError = validatePhoneNumber(phone))
-    }
-
-    fun onCiudadChange(idCiudad: Long) = _uiState.update {
-        it.copy(idCiudad = idCiudad, ciudadError = null)
-    }
-
-    fun onDireccionChange(direccion: String) = _uiState.update {
-        it.copy(direccion = direccion, direccionError = validateDireccion(direccion))
-    }
-
+    fun onEmailChange(email: String) = _uiState.update { it.copy(email = email, emailError = if (email.isNotBlank() && !email.matches(emailRegex)) "Correo inválido" else null) }
+    fun onPasswordChange(password: String) = _uiState.update { it.copy(password = password, passwordError = if (password.length < 6) "Mínimo 6 caracteres" else null) }
+    fun onFullNameChange(name: String) = _uiState.update { it.copy(fullName = name, fullNameError = validateFullName(name)) }
+    fun onPhoneNumberChange(phone: String) = _uiState.update { it.copy(phoneNumber = phone, phoneNumberError = validatePhoneNumber(phone)) }
+    fun onCiudadChange(idCiudad: Long) = _uiState.update { it.copy(idCiudad = idCiudad, ciudadError = null) }
+    fun onDireccionChange(direccion: String) = _uiState.update { it.copy(direccion = direccion, direccionError = validateDireccion(direccion)) }
     fun onAliasChange(alias: String) = _uiState.update { it.copy(alias = alias) }
-
     fun onProfileImageChange(uri: String?) = _uiState.update { it.copy(profileImageUri = uri) }
-
     fun onFetchingLocationChange(isFetching: Boolean) = _uiState.update { it.copy(isFetchingLocation = isFetching) }
+
+    private fun copyUriToInternalStorage(uriString: String): String? {
+        return try {
+            val inputStream = context.contentResolver.openInputStream(Uri.parse(uriString))
+            // [CORRECCIÓN DEFINITIVA] Se usa filesDir (almacenamiento permanente) en lugar de cacheDir (temporal)
+            val file = File(context.filesDir, "profile_pic_${System.currentTimeMillis()}.jpg")
+            val outputStream = FileOutputStream(file)
+            inputStream?.copyTo(outputStream)
+            inputStream?.close()
+            outputStream.close()
+            Uri.fromFile(file).toString()
+        } catch (e: Exception) {
+            null
+        }
+    }
 
     fun onRegisterClicked(onSuccess: () -> Unit, onError: (String) -> Unit) {
         if (!isFormValid()) {
@@ -100,6 +95,12 @@ class RegisterViewModel(
                 val internalToken = registrationResult.internalToken
 
                 sessionManager.saveUserSession(state.email, internalToken)
+
+                state.profileImageUri?.let { tempUri ->
+                    copyUriToInternalStorage(tempUri)?.let {
+                        sessionManager.saveProfileImageUri(it)
+                    }
+                }
 
                 if (state.idCiudad != null && state.direccion.isNotBlank()) {
                     clienteRepository.crearDireccion(
@@ -125,14 +126,12 @@ class RegisterViewModel(
         }
     }
 
-    // [CORRECCIÓN CLAVE] Se elimina la validación obligatoria de la dirección para que coincida con la lógica de ejecución
     private fun isFormValid(): Boolean {
         val state = _uiState.value
         return state.emailError == null &&
                 state.passwordError == null &&
                 state.fullNameError == null &&
                 state.phoneNumberError == null &&
-                // Solo validamos el error de dirección si el usuario ha escrito algo
                 (state.direccion.isBlank() || state.direccionError == null) &&
                 state.email.isNotBlank() &&
                 state.password.isNotBlank() &&

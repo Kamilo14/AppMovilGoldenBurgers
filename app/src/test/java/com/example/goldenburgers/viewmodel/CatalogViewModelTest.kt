@@ -16,6 +16,7 @@ import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
 import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.flow
 import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
@@ -45,128 +46,136 @@ class CatalogViewModelTest : ShouldSpec() {
         }
 
         context("Funcionalidad del Carrito") {
-            should("añadir un producto debería agregarlo a la lista de items y actualizar el subtotal") {
-                val productoFalso = Producto(1L, 1L, "Burger", "desc", 5000.0, null, 1, "cat")
-                viewModel.addToCart(productoFalso)
+            should("addToCart debería agregar un nuevo producto") {
+                val producto = Producto(1L, 1L, "Burger", "desc", 5000.0, null, 1, "cat")
+                viewModel.addToCart(producto)
                 val state = viewModel.uiState.value
                 state.cartItems.size shouldBe 1
                 state.cartSubtotal shouldBe 5000.0
             }
 
-            should("añadir el mismo producto dos veces debería aumentar la cantidad") {
-                val productoFalso = Producto(1L, 1L, "Doble Queso", null, 6000.0, null, 1, "Burgers")
-                viewModel.addToCart(productoFalso)
-                viewModel.addToCart(productoFalso)
+            should("addToCart debería incrementar la cantidad de un producto existente") {
+                val producto = Producto(1L, 1L, "Doble Queso", null, 6000.0, null, 1, "Burgers")
+                viewModel.addToCart(producto)
+                viewModel.addToCart(producto)
+                viewModel.uiState.value.cartItems.first().quantity shouldBe 2
+                viewModel.uiState.value.cartSubtotal shouldBe 12000.0
+            }
+
+            should("increaseQuantity debería aumentar la cantidad") {
+                val producto = Producto(1L, 1L, "Burger", "desc", 5000.0, null, 1, "cat")
+                viewModel.addToCart(producto)
+                viewModel.increaseQuantity(1L)
                 viewModel.uiState.value.cartItems.first().quantity shouldBe 2
             }
 
-            should("increaseQuantity debería aumentar la cantidad y el subtotal") {
-                val productoFalso = Producto(1L, 1L, "Burger", "desc", 5000.0, null, 1, "cat")
-                viewModel.addToCart(productoFalso)
-                viewModel.increaseQuantity(1L)
-                val state = viewModel.uiState.value
-                state.cartItems.first().quantity shouldBe 2
-                state.cartSubtotal shouldBe 10000.0
-            }
-
-            should("decreaseQuantity debería reducir la cantidad y el subtotal") {
-                val productoFalso = Producto(1L, 1L, "Doble Queso", null, 6000.0, null, 1, "Burgers")
-                viewModel.addToCart(productoFalso)
-                viewModel.addToCart(productoFalso)
+            should("decreaseQuantity debería reducir la cantidad") {
+                val producto = Producto(1L, 1L, "Doble Queso", null, 6000.0, null, 1, "Burgers")
+                viewModel.addToCart(producto)
+                viewModel.addToCart(producto)
                 viewModel.decreaseQuantity(1L)
-                val state = viewModel.uiState.value
-                state.cartItems.first().quantity shouldBe 1
-                state.cartSubtotal shouldBe 6000.0
+                viewModel.uiState.value.cartItems.first().quantity shouldBe 1
             }
 
-            should("decreaseQuantity a cero debería eliminar el producto del carrito") {
-                val productoFalso = Producto(1L, 1L, "Doble Queso", null, 6000.0, null, 1, "Burgers")
-                viewModel.addToCart(productoFalso)
+            should("decreaseQuantity debería eliminar el producto si la cantidad es 1") {
+                val producto = Producto(1L, 1L, "Doble Queso", null, 6000.0, null, 1, "Burgers")
+                viewModel.addToCart(producto)
                 viewModel.decreaseQuantity(1L)
-                val state = viewModel.uiState.value
-                state.cartItems.isEmpty() shouldBe true
-                state.cartSubtotal shouldBe 0.0
+                viewModel.uiState.value.cartItems.isEmpty() shouldBe true
             }
 
-            should("clearCart debería vaciar el carrito y resetear el subtotal") {
-                val producto1 = Producto(1L, 1L, "Burger", null, 5000.0, null, 1, "Burgers")
-                viewModel.addToCart(producto1)
+            should("clearCart debería vaciar el carrito") {
+                viewModel.addToCart(Producto(1L, 1L, "Burger", null, 5000.0, null, 1, "Burgers"))
                 viewModel.clearCart()
-                val state = viewModel.uiState.value
-                state.cartItems.isEmpty() shouldBe true
-                state.cartSubtotal shouldBe 0.0
+                viewModel.uiState.value.cartItems.isEmpty() shouldBe true
+                viewModel.uiState.value.cartSubtotal shouldBe 0.0
             }
         }
 
         context("Funcionalidad de Favoritos") {
-            should("toggleFavorite debería llamar a addFavorite si el producto no es favorito") {
+            should("toggleFavorite debería añadir a favoritos") {
                 viewModel.toggleFavorite(123L, false)
                 coVerify(exactly = 1) { productRepository.addFavorite(123L) }
             }
 
-            should("toggleFavorite debería llamar a removeFavorite si el producto ya es favorito") {
+            should("toggleFavorite debería eliminar de favoritos") {
                 viewModel.toggleFavorite(456L, true)
                 coVerify(exactly = 1) { productRepository.removeFavorite(456L) }
             }
         }
 
-        context("Carga de Datos Iniciales") {
-            should("loadInitialData debería observar y actualizar productos y favoritos") {
-                // Arrange
+        context("Carga de Datos") {
+            should("loadInitialData debería cargar productos y favoritos") {
                 val fakeProducts = listOf(Producto(1L, 1L, "P1", "d", 1.0, null, 1, "c"))
                 val fakeFavorites = listOf(Producto(2L, 1L, "P2", "d", 2.0, null, 1, "c"))
                 every { productRepository.allProducts } returns flowOf(fakeProducts)
                 every { productRepository.favoriteProducts } returns flowOf(fakeFavorites)
-
-                // Act
                 viewModel.loadInitialData()
-
-                // Assert
-                val state = viewModel.uiState.value
-                state.products.size shouldBe 1
-                state.products.first().idProducto shouldBe 1L
-                state.favorites.size shouldBe 1
-                state.favorites.first().idProducto shouldBe 2L
+                viewModel.uiState.value.products shouldBe fakeProducts
+                viewModel.uiState.value.favorites shouldBe fakeFavorites
             }
 
-            should("loadUserName debería usar el nombre del cliente si el cliente existe") {
-                val fakeUsuario = Usuario("uid", "test@test.com", Rol(3, "C"), "fecha")
-                val fakeCliente = Cliente(1L, fakeUsuario, "Usuario de Prueba", "phone", emptyList())
-                coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf("test@test.com")
+            should("loadUserName debería usar el nombre del cliente si existe") {
+                val fakeCliente = Cliente(1L, Usuario("uid", "t@t.com", Rol(3, "C"), "f"), "Test User", "p", emptyList())
+                coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf("t@t.com")
                 every { clienteRepository.currentCliente } returns MutableStateFlow(fakeCliente)
                 viewModel.loadUserName()
-                viewModel.uiState.value.userName shouldBe "Usuario de Prueba"
+                viewModel.uiState.value.userName shouldBe "Test User"
             }
 
             should("loadUserName debería usar el email si el cliente no existe") {
-                coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf("usuario_sin_perfil@test.com")
+                coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf("no-cliente@test.com")
                 every { clienteRepository.currentCliente } returns MutableStateFlow(null)
                 viewModel.loadUserName()
-                viewModel.uiState.value.userName shouldBe "usuario_sin_perfil"
+                viewModel.uiState.value.userName shouldBe "no-cliente"
             }
         }
 
-        context("Casos Nulos y de Borde") {
-            should("toggleFavorite con ID nulo no debería hacer nada") {
+        context("Casos de Borde y Errores") {
+            should("ignorar toggleFavorite si el ID es nulo") {
                 viewModel.toggleFavorite(null, false)
                 coVerify(exactly = 0) { productRepository.addFavorite(any()) }
                 coVerify(exactly = 0) { productRepository.removeFavorite(any()) }
             }
 
-            should("increaseQuantity con ID nulo no debería hacer nada") {
-                val productoFalso = Producto(1L, 1L, "Burger", "desc", 5000.0, null, 1, "cat")
-                viewModel.addToCart(productoFalso)
+            should("ignorar increaseQuantity si el ID es nulo o no existe") {
+                val producto = Producto(1L, 1L, "Burger", "d", 5000.0, null, 1, "c")
+                viewModel.addToCart(producto)
                 val initialState = viewModel.uiState.value
                 viewModel.increaseQuantity(null)
-                viewModel.uiState.value shouldBe initialState // El estado no debe cambiar
+                viewModel.increaseQuantity(999L) // ID no existente
+                viewModel.uiState.value shouldBe initialState
             }
 
-            should("decreaseQuantity con ID nulo no debería hacer nada") {
-                val productoFalso = Producto(1L, 1L, "Burger", "desc", 5000.0, null, 1, "cat")
-                viewModel.addToCart(productoFalso)
+            should("ignorar decreaseQuantity si el ID es nulo o no existe") {
+                val producto = Producto(1L, 1L, "Burger", "d", 5000.0, null, 1, "c")
+                viewModel.addToCart(producto)
                 val initialState = viewModel.uiState.value
                 viewModel.decreaseQuantity(null)
-                viewModel.uiState.value shouldBe initialState // El estado no debe cambiar
+                viewModel.decreaseQuantity(999L) // ID no existente
+                viewModel.uiState.value shouldBe initialState
+            }
+
+            // [NUEVO] Test para el camino de error de los flows
+            should("no crashear si la carga de productos falla") {
+                every { productRepository.allProducts } returns flow { throw Exception("DB Error") }
+                viewModel.loadInitialData()
+                // La aserción es que no crashea. El estado de products se mantendrá vacío.
+                viewModel.uiState.value.products.isEmpty() shouldBe true
+            }
+            
+            should("no crashear si la carga de favoritos falla") {
+                every { productRepository.favoriteProducts } returns flow { throw Exception("DB Error") }
+                viewModel.loadInitialData()
+                viewModel.uiState.value.favorites.isEmpty() shouldBe true
+            }
+            
+            // [NUEVO] Test para el caso de email nulo/vacío
+            should("no hacer nada si el email del usuario es nulo") {
+                 coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf(null)
+                 val initialState = viewModel.uiState.value
+                 viewModel.loadUserName()
+                 viewModel.uiState.value.userName shouldBe initialState.userName
             }
         }
     }

@@ -52,16 +52,17 @@ fun AppNavigation(
     
     val routingRepository = RoutingRepository(nominatimApi, osrmApi)
 
-    val registerViewModelFactory = RegisterViewModelFactory(authRepository, clienteRepository, sessionManager)
+    val registerViewModelFactory = RegisterViewModelFactory(authRepository, clienteRepository, sessionManager, context)
+    val registerViewModel: RegisterViewModel = viewModel(factory = registerViewModelFactory)
 
     val catalogViewModel: CatalogViewModel = viewModel { CatalogViewModelFactory(productRepository, sessionManager, clienteRepository).create(CatalogViewModel::class.java) }
     val addressViewModel: AddressViewModel = viewModel { AddressViewModelFactory(clienteRepository, authRepository, routingRepository).create(AddressViewModel::class.java) }
     val editAddressViewModel: EditAddressViewModel = viewModel { EditAddressViewModelFactory(clienteRepository, authRepository).create(EditAddressViewModel::class.java) }
     val pedidoViewModel: PedidoViewModel = viewModel { PedidoViewModelFactory(pedidoRepository, clienteRepository, authRepository).create(PedidoViewModel::class.java) }
-    val editProfileViewModel: EditProfileViewModel = viewModel { EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager).create(EditProfileViewModel::class.java) }
+    // [CORRECCIÓN] Se pasa el context a la factory para que pueda inyectarlo en el ViewModel
+    val editProfileViewModel: EditProfileViewModel = viewModel { EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager, context).create(EditProfileViewModel::class.java) }
     val fakePaymentViewModel: FakePaymentViewModel = viewModel { FakePaymentViewModelFactory(pedidoRepository).create(FakePaymentViewModel::class.java) }
 
-    // [CORRECCIÓN CLAVE] Se usa 'initial' para collectAsState
     val loggedInUserEmail by sessionManager.loggedInUserEmailFlow.collectAsState(initial = "")
     val startDestination = if (!loggedInUserEmail.isNullOrBlank()) "main_flow" else AppScreens.WelcomeScreen.route
 
@@ -79,20 +80,15 @@ fun AppNavigation(
             }
             
             composable(AppScreens.RegisterStep1Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep1Screen(navController, registerViewModel) 
             }
             composable(AppScreens.RegisterStep2Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep2Screen(navController, registerViewModel) 
             }
             composable(AppScreens.RegisterStep3Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep3Screen(navController, registerViewModel) 
             }
-            
             composable(AppScreens.RegisterStep5Screen.route) { 
-                val registerViewModel: RegisterViewModel = viewModel { registerViewModelFactory.create(RegisterViewModel::class.java) }
                 RegisterStep5Screen(navController, registerViewModel) 
             }
 

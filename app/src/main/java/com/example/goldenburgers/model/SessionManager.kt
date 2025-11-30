@@ -9,40 +9,31 @@ import androidx.datastore.preferences.preferencesDataStore
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.map
 
-// El DataStore ahora se llamará "session_prefs" para reflejar su propósito.
 private val Context.sessionDataStore: DataStore<Preferences> by preferencesDataStore(name = "session_prefs")
 
-/**
- * Gestion de la sesión del usuario.
- */
 class SessionManager(private val context: Context) {
 
-    // Claves para guardar los datos del usuario
     private val loggedInUserEmailKey = stringPreferencesKey("logged_in_user_email")
-    private val authTokenKey = stringPreferencesKey("auth_token") // NUEVO: Para guardar el token JWT
+    private val authTokenKey = stringPreferencesKey("auth_token")
+    // [NUEVO] Clave para guardar la URI de la foto de perfil
+    private val profileImageUriKey = stringPreferencesKey("profile_image_uri")
 
-    /**
-     * Un Flow que emite el email del usuario logueado.
-     * Si no hay nadie logueado, emite null.
-     */
     val loggedInUserEmailFlow: Flow<String?> = context.sessionDataStore.data
         .map { preferences ->
             preferences[loggedInUserEmailKey]
         }
         
-    /**
-     * Un Flow que emite el token de autenticación.
-     * Útil para clientes reactivos.
-     */
     val authTokenFlow: Flow<String?> = context.sessionDataStore.data
         .map { preferences ->
             preferences[authTokenKey]
         }
 
-    /**
-     * Guarda el email del usuario para marcarlo como logueado.
-     * @param email El email del usuario que ha iniciado sesión.
-     */
+    // [NUEVO] Flow para observar la URI de la foto de perfil
+    val profileImageUriFlow: Flow<String?> = context.sessionDataStore.data
+        .map { preferences ->
+            preferences[profileImageUriKey]
+        }
+
     suspend fun saveUserSession(email: String, token: String? = null) {
         context.sessionDataStore.edit { preferences ->
             preferences[loggedInUserEmailKey] = email
@@ -52,22 +43,25 @@ class SessionManager(private val context: Context) {
         }
     }
     
-    /**
-     * Guarda solo el token (por si se renueva independientemente del login)
-     */
     suspend fun saveToken(token: String) {
         context.sessionDataStore.edit { preferences ->
             preferences[authTokenKey] = token
         }
     }
 
-    /**
-     * Limpia la sesión del usuario, eliminando email y token.
-     */
+    // [NUEVO] Función para guardar la URI de la foto de perfil
+    suspend fun saveProfileImageUri(uri: String) {
+        context.sessionDataStore.edit { preferences ->
+            preferences[profileImageUriKey] = uri
+        }
+    }
+
     suspend fun clearUserSession() {
         context.sessionDataStore.edit { preferences ->
             preferences.remove(loggedInUserEmailKey)
             preferences.remove(authTokenKey)
+            // [NUEVO] Limpiar también la foto de perfil al cerrar sesión
+            preferences.remove(profileImageUriKey)
         }
     }
 }

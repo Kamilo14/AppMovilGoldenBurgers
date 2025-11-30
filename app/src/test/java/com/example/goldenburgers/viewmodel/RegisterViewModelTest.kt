@@ -1,5 +1,6 @@
 package com.example.goldenburgers.viewmodel
 
+import android.content.Context
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.data.Cliente
 import com.example.goldenburgers.model.data.DireccionCliente
@@ -26,6 +27,7 @@ class RegisterViewModelTest : ShouldSpec() {
     private lateinit var authRepository: AuthRepository
     private lateinit var clienteRepository: ClienteRepository
     private lateinit var sessionManager: SessionManager
+    private lateinit var context: Context // [NUEVO]
     private lateinit var viewModel: RegisterViewModel
 
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -36,7 +38,9 @@ class RegisterViewModelTest : ShouldSpec() {
             authRepository = mockk(relaxed = true)
             clienteRepository = mockk(relaxed = true)
             sessionManager = mockk(relaxed = true)
-            viewModel = RegisterViewModel(authRepository, clienteRepository, sessionManager)
+            context = mockk(relaxed = true) // [NUEVO] Se crea el mock del Context
+            // [CORRECCIÓN] Se pasa el context al constructor
+            viewModel = RegisterViewModel(authRepository, clienteRepository, sessionManager, context)
         }
 
         afterTest {
@@ -50,10 +54,10 @@ class RegisterViewModelTest : ShouldSpec() {
                 val fakeUsuario = Usuario("uid-falso", "test@test.com", fakeRol, "2025-01-01")
                 val fakeCliente = Cliente(1L, fakeUsuario, "Test User", "123456789", emptyList())
                 val fakeResult = RegistrationResult(fakeCliente, "fake-internal-token")
-                val fakeDireccion = mockk<DireccionCliente>() // [CORRECCIÓN CLAVE] Creamos un mock específico
+                val fakeDireccion = mockk<DireccionCliente>()
 
                 coEvery { authRepository.registerUser(any(), any(), any(), any()) } returns Result.success(fakeResult)
-                coEvery { clienteRepository.crearDireccion(any(), any(), any(), any()) } returns Result.success(fakeDireccion) // Lo devolvemos
+                coEvery { clienteRepository.crearDireccion(any(), any(), any(), any()) } returns Result.success(fakeDireccion)
 
                 var fueExitoso = false
                 viewModel.onEmailChange("test@test.com")
