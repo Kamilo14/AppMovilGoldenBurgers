@@ -9,6 +9,7 @@ import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.mockk
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import retrofit2.Response
 
 @ExperimentalCoroutinesApi
 class PedidoRepositoryTest : ShouldSpec() {
@@ -64,7 +65,9 @@ class PedidoRepositoryTest : ShouldSpec() {
             should("debería devolver una lista de pedidos cuando la API responde con éxito") {
                 // Arrange
                 val fakePedidoList = listOf(mockk<PedidoDTO>(), mockk<PedidoDTO>())
-                coEvery { apiService.getPedidosPorCliente(1L) } returns fakePedidoList
+                // [CORRECCIÓN] Envolvemos la lista en un Response.success para que coincida con la firma de la API
+                val fakeResponse = Response.success(fakePedidoList)
+                coEvery { apiService.getPedidosPorCliente(1L) } returns fakeResponse
 
                 // Act
                 val result = repository.getPedidosPorCliente(1L)

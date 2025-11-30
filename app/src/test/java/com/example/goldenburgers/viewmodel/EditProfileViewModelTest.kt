@@ -1,5 +1,6 @@
 package com.example.goldenburgers.viewmodel
 
+import android.content.Context
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.data.Cliente
 import com.example.goldenburgers.model.data.Rol
@@ -9,13 +10,13 @@ import com.example.goldenburgers.repository.ClienteRepository
 import com.google.firebase.auth.FirebaseUser
 import io.kotest.core.spec.style.ShouldSpec
 import io.kotest.matchers.shouldBe
-import io.kotest.matchers.shouldNotBe
 import io.mockk.coEvery
 import io.mockk.coVerify
 import io.mockk.every
 import io.mockk.mockk
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.ExperimentalCoroutinesApi
+import kotlinx.coroutines.flow.flowOf
 import kotlinx.coroutines.test.UnconfinedTestDispatcher
 import kotlinx.coroutines.test.resetMain
 import kotlinx.coroutines.test.setMain
@@ -26,6 +27,7 @@ class EditProfileViewModelTest : ShouldSpec() {
     private lateinit var authRepository: AuthRepository
     private lateinit var clienteRepository: ClienteRepository
     private lateinit var sessionManager: SessionManager
+    private lateinit var context: Context
     private lateinit var viewModel: EditProfileViewModel
 
     private val testDispatcher = UnconfinedTestDispatcher()
@@ -35,8 +37,14 @@ class EditProfileViewModelTest : ShouldSpec() {
             Dispatchers.setMain(testDispatcher)
             authRepository = mockk()
             clienteRepository = mockk()
-            sessionManager = mockk(relaxed = true)
-            viewModel = EditProfileViewModel(authRepository, clienteRepository, sessionManager)
+            sessionManager = mockk() // [CORRECCIÓN CLAVE] Ya no es relajado
+            context = mockk(relaxed = true)
+
+            // [CORRECCIÓN CLAVE] Se define explícitamente el comportamiento del Flow
+            every { sessionManager.profileImageUriFlow } returns flowOf(null)
+            coEvery { sessionManager.saveProfileImageUri(any()) } returns Unit
+
+            viewModel = EditProfileViewModel(authRepository, clienteRepository, sessionManager, context)
         }
 
         afterTest {
@@ -85,7 +93,6 @@ class EditProfileViewModelTest : ShouldSpec() {
             }
 
             should("loadCurrentUser debería parar de cargar si el repositorio de cliente falla") {
-                // [CORRECCIÓN CLAVE 1] El mock de FirebaseUser debe tener un uid
                 val fakeFirebaseUser = mockk<FirebaseUser> { every { uid } returns "uid-falso" }
                 coEvery { authRepository.getCurrentUser() } returns fakeFirebaseUser
                 coEvery { clienteRepository.obtenerClientePorFirebaseUid(any()) } returns Result.failure(Exception())
@@ -102,7 +109,6 @@ class EditProfileViewModelTest : ShouldSpec() {
             }
 
             should("saveChanges debería invocar onError si el repositorio falla al actualizar") {
-                // [CORRECCIÓN CLAVE 2] Se configura el mock de FirebaseUser y se carga el estado inicial
                 val fakeFirebaseUser = mockk<FirebaseUser> { every { uid } returns "uid-falso" }
                 val initialCliente = Cliente(1L, Usuario("uid", "e@e.com", Rol(1, "R"), "f"), "Test User", null, emptyList())
                 coEvery { authRepository.getCurrentUser() } returns fakeFirebaseUser
