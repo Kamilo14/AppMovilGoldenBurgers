@@ -29,7 +29,7 @@ class MainActivity : ComponentActivity() {
 
     // Repositorios para autenticación y gestión de clientes
     private val authRepository by lazy { AuthRepository() }
-    private val clienteRepository by lazy { ClienteRepository() }
+    private val clienteRepository by lazy { ClienteRepository(sessionManager) } // <-- Aquí se inyecta sessionManager
 
     // TODO: Implementar ProductRepository desde el backend (GESTIONCATALOGO)
     // Por ahora, el CatalogViewModel está deshabilitado hasta que implementes

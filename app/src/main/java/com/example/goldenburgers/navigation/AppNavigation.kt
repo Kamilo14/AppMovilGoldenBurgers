@@ -40,7 +40,7 @@ fun AppNavigation(
 
     // --- Creación de ViewModels con nuevos repositorios ---
     val loginViewModel: LoginViewModel = viewModel(
-        factory = LoginViewModelFactory(authRepository, clienteRepository)
+        factory = LoginViewModelFactory(authRepository, clienteRepository, sessionManager)
     )
     val registerViewModel: RegisterViewModel = viewModel(
         factory = RegisterViewModelFactory(authRepository)

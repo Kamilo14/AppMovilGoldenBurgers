@@ -2,6 +2,7 @@ package com.example.goldenburgers.viewmodel
 
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.data.Cliente
 import com.example.goldenburgers.repository.AuthRepository
 import com.example.goldenburgers.repository.ClienteRepository
@@ -28,7 +29,8 @@ data class EditProfileUiState(
  */
 class EditProfileViewModel(
     private val authRepository: AuthRepository,
-    private val clienteRepository: ClienteRepository
+    private val clienteRepository: ClienteRepository,
+    private val sessionManager: SessionManager // Inyectamos SessionManager
 ) : ViewModel() {
 
     private val _uiState = MutableStateFlow(EditProfileUiState())
@@ -44,6 +46,13 @@ class EditProfileViewModel(
             val firebaseUser = authRepository.getCurrentUser()
 
             if (firebaseUser != null) {
+                // Asegurarnos de tener un token fresco antes de llamar al repositorio
+                val token = authRepository.getAuthToken()
+                if (token != null) {
+                    // Guardar el token fresco en SessionManager para que el Repositorio lo use
+                    sessionManager.saveUserSession(firebaseUser.email ?: "", token)
+                }
+
                 val result = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
 
                 result.fold(
