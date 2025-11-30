@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<network-security-config>
+    <domain-config cleartextTrafficPermitted="true">
+        <!-- Permite tráfico HTTP sin cifrar para esta dirección IP -->
+        <domain includeSubdomains="true">161.153.219.128</domain>
+    </domain-config>
+</network-security-config>

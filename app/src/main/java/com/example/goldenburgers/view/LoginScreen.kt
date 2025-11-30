@@ -23,6 +23,7 @@ import androidx.navigation.NavController
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.navigation.AppScreens
 import com.example.goldenburgers.viewmodel.LoginViewModel
+import com.example.goldenburgers.repository.AuthRepository
 import kotlinx.coroutines.launch
 
 /**
@@ -43,6 +44,10 @@ fun LoginScreen(
     val scope = rememberCoroutineScope()
     // `LocalContext.current` me da el contexto de Android, necesario para mostrar Toasts.
     val context = LocalContext.current
+    // AuthRepository temporal para obtener el token (lo ideal sería pasarlo desde el viewModel o Inyección de dependencias)
+    // Pero por ahora lo instanciamos aquí para que funcione rápido.
+    val authRepository = com.example.goldenburgers.repository.AuthRepository()
+
 
     // Esta es mi lógica de validación para el botón de "Ingresar".
     // El botón solo se activará si ambos campos tienen texto y no hay errores de validación.
@@ -109,9 +114,13 @@ fun LoginScreen(
                             onSuccess = {
                                 // Si el login es exitoso, lanzo una corutina para realizar dos acciones:
                                 scope.launch {
-                                    // 1. Guardo la sesión del usuario usando el SessionManager.
-                                    sessionManager.saveUserSession(uiState.email)
-                                    // 2. Navego al flujo principal de la app, limpiando el historial anterior.
+                                    // 1. Obtenemos el token JWT de Firebase
+                                    val token = authRepository.getAuthToken()
+                                    
+                                    // 2. Guardo la sesión del usuario (email y token) usando el SessionManager.
+                                    sessionManager.saveUserSession(uiState.email, token)
+                                    
+                                    // 3. Navego al flujo principal de la app, limpiando el historial anterior.
                                     navController.navigate("main_flow") {
                                         popUpTo(AppScreens.WelcomeScreen.route) { inclusive = true }
                                     }

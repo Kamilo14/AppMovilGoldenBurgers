@@ -80,6 +80,20 @@ class AuthRepository {
             Result.failure(e)
         }
     }
+    
+    /**
+     * Obtener el token JWT de Firebase para autenticarse en el backend
+     */
+    suspend fun getAuthToken(): String? {
+        return try {
+            val user = firebaseAuth.currentUser ?: return null
+            val tokenResult = user.getIdToken(true).await()
+            tokenResult.token
+        } catch (e: Exception) {
+            e.printStackTrace()
+            null
+        }
+    }
 
     /**
      * Cerrar sesión

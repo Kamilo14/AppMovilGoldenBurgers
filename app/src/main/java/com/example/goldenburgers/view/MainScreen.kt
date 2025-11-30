@@ -10,6 +10,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.graphics.Color
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.navigation.NavController
 import androidx.navigation.NavGraph.Companion.findStartDestination
@@ -54,23 +55,12 @@ fun MainScreen(
     // Scaffold es el componente de Material 3 que me da la estructura básica de una pantalla
     // (barra superior, barra inferior, contenido, etc.).
     Scaffold(
-        topBar = {
-            // He decidido poner la TopAppBar aquí para que sea compartida por todas las
-            // pantallas del BottomNav. Esto crea una experiencia de usuario consistente.
-            TopAppBar(
-                title = {
-                    val userName = uiState.userName
-                    // Muestro un saludo personalizado si tengo el nombre del usuario.
-                    // Si no, muestro el nombre de la app. El `.split(" ").first()` es un
-                    // truco para tomar solo el primer nombre.
-                    if (userName != null) {
-                        Text("Hola, ${userName.split(" ").first()}!")
-                    } else {
-                        Text("Golden Burgers")
-                    }
-                }
-            )
-        },
+        // HE ELIMINADO LA TOP APP BAR AQUÍ
+        // Porque ahora usamos el BrandHeader en HomeScreen y queremos fondo negro continuo.
+        
+        // Establecemos el color del contenedor del Scaffold a negro
+        containerColor = Color.Black,
+        
         // Aquí le paso el Composable de mi barra de navegación inferior.
         bottomBar = { BottomNavigationBar(navController = bottomBarNavController) }
     ) { innerPadding ->
@@ -99,7 +89,10 @@ fun BottomNavigationBar(navController: NavHostController) {
     // La he definido en `BottomNavItem.kt` para mantener el código organizado.
     val items = listOf(BottomNavItem.Home, BottomNavItem.Favorites, BottomNavItem.Cart, BottomNavItem.Profile)
 
-    NavigationBar {
+    NavigationBar(
+        containerColor = Color.Black, // Fondo negro para el navbar
+        contentColor = Color.White // Iconos y texto blancos por defecto
+    ) {
         // `currentBackStackEntryAsState` es una función muy útil que me permite saber
         // cuál es la pantalla que se está mostrando actualmente.
         val navBackStackEntry by navController.currentBackStackEntryAsState()
@@ -111,6 +104,13 @@ fun BottomNavigationBar(navController: NavHostController) {
                 selected = currentRoute == item.route, // El item se marca como seleccionado si su ruta es la actual.
                 label = { Text(text = item.title) },
                 icon = { Icon(imageVector = item.icon, contentDescription = item.title) },
+                colors = NavigationBarItemDefaults.colors(
+                    selectedIconColor = Color.Black, // Icono negro cuando está seleccionado
+                    selectedTextColor = Color(0xFFFFC107), // Texto amarillo cuando está seleccionado
+                    indicatorColor = Color(0xFFFFC107), // Fondo amarillo del indicador cuando está seleccionado
+                    unselectedIconColor = Color.White, // Icono blanco cuando no
+                    unselectedTextColor = Color.White // Texto blanco cuando no
+                ),
                 onClick = {
                     // Lógica de navegación. Cuando el usuario pulsa un item, navego a su ruta.
                     // Las opciones `popUpTo`, `launchSingleTop` y `restoreState` son cruciales
@@ -153,7 +153,13 @@ fun BottomNavGraph(
             FavoritesScreen(catalogViewModel = catalogViewModel)
         }
         composable(AppScreens.CartScreen.route) {
-            CartScreen(catalogViewModel = catalogViewModel)
+            // Le pasamos un callback vacío para onCheckoutClick, o implementamos una acción
+            // como navegar a una pantalla de Checkout futura.
+            // Por ahora, solo un print o lambda vacía para que compile.
+            CartScreen(catalogViewModel = catalogViewModel, onCheckoutClick = {
+                // TODO: Implementar navegación a pantalla de pago
+                println("Ir a pagar")
+            })
         }
         composable(AppScreens.ProfileScreen.route) {
             // A la pantalla de perfil le paso todas las dependencias que necesita.

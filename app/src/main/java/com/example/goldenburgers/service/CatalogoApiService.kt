@@ -6,18 +6,19 @@ import com.example.goldenburgers.model.dto.ProductoDTO
 import com.example.goldenburgers.model.dto.CategoriaDTO
 
 interface CatalogoApiService {
-    @GET("api/catalogo/productos")
+
+    //Obtiene los productos disponibles en el catálogo
+    @GET("catalogo/productos")
     suspend fun getProductos(): List<ProductoDTO>
 
-    @GET("api/catalogo/productos/{id}")
+    @GET("catalogo/productos/{id}")
     suspend fun getProducto(@Path("id") id: Long): ProductoDTO
 
-    @GET("api/catalogo/productos/categoria/{idCategoria}")
+    @GET("catalogo/productos/categoria/{idCategoria}")
     suspend fun getProductosPorCategoria(@Path("idCategoria") idCategoria: Long): List<ProductoDTO>
 
 
-    @GET("api/catalogo/categorias")
+    @GET("catalogo/categorias")
     suspend fun getCategorias(): List<CategoriaDTO>
-
 
 }

@@ -60,6 +60,18 @@ object RetrofitClient {
     val gestionUsuarioService: GestionUsuarioApiService by lazy {
         retrofit.create(GestionUsuarioApiService::class.java)
     }
+
+    val catalogoService: CatalogoApiService by lazy {
+        retrofit.create(CatalogoApiService::class.java)
+    }
+    
+    val ventaService: VentaApiService by lazy {
+        retrofit.create(VentaApiService::class.java)
+    }
+
+    val pedidoService: PedidoApiService by lazy {
+        retrofit.create(PedidoApiService::class.java)
+    }
 }
 
 /**
@@ -89,15 +101,28 @@ class AuthenticatedRetrofitClient(private val token: String) {
         .writeTimeout(30, TimeUnit.SECONDS)
         .build()
 
+    private val retrofit = Retrofit.Builder()
+        .baseUrl("http://161.153.219.128:8080/api/")
+        .client(okHttpClient)
+        .addConverterFactory(GsonConverterFactory.create())
+        .build()
+
     /**
      * Servicio Gestión de Usuarios autenticado
      */
     val gestionUsuarioService: GestionUsuarioApiService by lazy {
-        Retrofit.Builder()
-            .baseUrl("http://161.153.219.128:8080/api/")
-            .client(okHttpClient)
-            .addConverterFactory(GsonConverterFactory.create())
-            .build()
-            .create(GestionUsuarioApiService::class.java)
+        retrofit.create(GestionUsuarioApiService::class.java)
+    }
+
+    val catalogoService: CatalogoApiService by lazy {
+        retrofit.create(CatalogoApiService::class.java)
+    }
+
+    val ventaService: VentaApiService by lazy {
+        retrofit.create(VentaApiService::class.java)
+    }
+
+    val pedidoService: PedidoApiService by lazy {
+        retrofit.create(PedidoApiService::class.java)
     }
 }
