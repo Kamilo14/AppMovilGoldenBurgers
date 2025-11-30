@@ -4,15 +4,11 @@ import com.example.goldenburgers.model.dto.PedidoDTO
 
 /**
  * Repositorio para gestionar todas las operaciones relacionadas con los Pedidos.
- * [CORREGIDO] Ahora depende de PedidoNetworkSource para la lógica de red.
  */
 class PedidoRepository(
     private val networkSource: PedidoNetworkSource
 ) {
 
-    /**
-     * Envía un nuevo pedido completo al backend.
-     */
     suspend fun crearPedidoCompleto(pedido: PedidoDTO): Result<PedidoDTO> {
         return try {
             val api = networkSource.getService()
@@ -25,20 +21,26 @@ class PedidoRepository(
 
     /**
      * Obtiene el historial de pedidos para un cliente específico.
+     * [CORRECCIÓN DEFINITIVA] Se maneja el objeto Response completo para ser a prueba de nulos.
      */
     suspend fun getPedidosPorCliente(idCliente: Long): Result<List<PedidoDTO>> {
         return try {
             val api = networkSource.getService()
-            val pedidos = api.getPedidosPorCliente(idCliente)
-            Result.success(pedidos)
+            val response = api.getPedidosPorCliente(idCliente)
+
+            if (response.isSuccessful) {
+                // Si la respuesta es exitosa, devolvemos el cuerpo o una lista vacía si el cuerpo es nulo.
+                Result.success(response.body() ?: emptyList())
+            } else {
+                // Si la respuesta no fue exitosa (ej: 404), devolvemos una lista vacía.
+                Result.success(emptyList())
+            }
         } catch (e: Exception) {
+            // Para cualquier otro error de más bajo nivel (ej: sin conexión), propagamos la falla.
             Result.failure(e)
         }
     }
 
-    /**
-     * Cambia el estado de un pedido existente.
-     */
     suspend fun cambiarEstadoPedido(idPedido: Long, idEstado: Long): Result<PedidoDTO> {
         return try {
             val api = networkSource.getService()
