@@ -7,6 +7,8 @@ import com.example.goldenburgers.model.dto.DetallePedidoDTO
 import com.example.goldenburgers.model.dto.PedidoDTO
 import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.repository.PedidoRepository
+import com.example.goldenburgers.view.DeliveryOption
+import com.example.goldenburgers.view.PaymentOption
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -21,7 +23,7 @@ data class PedidoUiState(
     val historialPedidos: List<PedidoDTO> = emptyList(),
     val isLoading: Boolean = false,
     val error: String? = null,
-    val pedidoCreadoExitosamente: Boolean = false
+    val ultimoPedidoCreado: PedidoDTO? = null // [CORREGIDO]
 )
 
 class PedidoViewModel(
@@ -34,11 +36,13 @@ class PedidoViewModel(
 
     fun crearPedido(
         items: List<CartItem>,
-        total: Double,
-        direccion: DireccionCliente
+        subtotal: Double,
+        direccion: DireccionCliente?,
+        tipoEntrega: DeliveryOption,
+        metodoPago: PaymentOption
     ) {
         viewModelScope.launch {
-            _uiState.update { it.copy(isLoading = true, error = null, pedidoCreadoExitosamente = false) }
+            _uiState.update { it.copy(isLoading = true, error = null, ultimoPedidoCreado = null) }
 
             val cliente = clienteRepository.currentCliente.first()
             if (cliente == null) {
@@ -46,17 +50,16 @@ class PedidoViewModel(
                 return@launch
             }
 
-            // [CORREGIDO] Se usan los nombres de campos correctos de los DTOs
             val pedidoDTO = PedidoDTO(
                 idPedido = null,
                 idCliente = cliente.idCliente,
-                idEstadoPedido = 1, // Asumimos 1: Pendiente
-                idMetodoPago = 1,   // Asumimos 1: Por definir o un método por defecto
-                idTipoEntrega = 1,  // Asumimos 1: Despacho a domicilio
-                idDireccionEntrega = direccion.idDireccion,
-                montoSubtotal = total, // Aquí debería ir el subtotal sin envío
-                montoEnvio = 0.0, // Hardcodeado por ahora
-                montoTotal = total, // Aquí debería ser subtotal + envío
+                idEstadoPedido = 1, // 1: Pendiente de Pago
+                idMetodoPago = metodoPago.id,
+                idTipoEntrega = tipoEntrega.id,
+                idDireccionEntrega = direccion?.idDireccion,
+                montoSubtotal = subtotal,
+                montoEnvio = tipoEntrega.cost,
+                montoTotal = subtotal + tipoEntrega.cost,
                 fechaPedido = SimpleDateFormat("yyyy-MM-dd'T'HH:mm:ss", Locale.US).format(Date()),
                 notaCliente = null,
                 detalles = items.map {
@@ -74,8 +77,9 @@ class PedidoViewModel(
             val result = pedidoRepository.crearPedidoCompleto(pedidoDTO)
 
             result.fold(
-                onSuccess = {
-                    _uiState.update { it.copy(isLoading = false, pedidoCreadoExitosamente = true) }
+                onSuccess = { nuevoPedido ->
+                    // [CORREGIDO] Guardamos el pedido recién creado en el estado
+                    _uiState.update { it.copy(isLoading = false, ultimoPedidoCreado = nuevoPedido) }
                 },
                 onFailure = { exception ->
                     _uiState.update { it.copy(isLoading = false, error = "Error al crear el pedido: ${exception.message}") }
@@ -90,7 +94,7 @@ class PedidoViewModel(
 
             val cliente = clienteRepository.currentCliente.first()
             if (cliente == null) {
-                _uiState.update { it.copy(isLoading = false, error = "No se pudo obtener la información del cliente para cargar el historial.") }
+                _uiState.update { it.copy(isLoading = false, error = "No se pudo obtener la información del cliente.") }
                 return@launch
             }
 
@@ -106,7 +110,8 @@ class PedidoViewModel(
         }
     }
 
-    fun resetPedidoCreado() {
-        _uiState.update { it.copy(pedidoCreadoExitosamente = false) }
+    // [CORREGIDO] Resetea el estado para el próximo pedido
+    fun resetUltimoPedido() {
+        _uiState.update { it.copy(ultimoPedidoCreado = null) }
     }
 }

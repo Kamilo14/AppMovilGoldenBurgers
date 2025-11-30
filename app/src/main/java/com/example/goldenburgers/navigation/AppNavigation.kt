@@ -50,6 +50,7 @@ fun AppNavigation(
     val editAddressViewModel: EditAddressViewModel = viewModel { EditAddressViewModelFactory(clienteRepository, authRepository).create(EditAddressViewModel::class.java) }
     val pedidoViewModel: PedidoViewModel = viewModel { PedidoViewModelFactory(pedidoRepository, clienteRepository).create(PedidoViewModel::class.java) }
     val editProfileViewModel: EditProfileViewModel = viewModel { EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager).create(EditProfileViewModel::class.java) }
+    val fakePaymentViewModel: FakePaymentViewModel = viewModel { FakePaymentViewModelFactory(pedidoRepository).create(FakePaymentViewModel::class.java) }
 
 
     val loggedInUserEmail by sessionManager.loggedInUserEmailFlow.collectAsState(initial = "")
@@ -99,6 +100,27 @@ fun AppNavigation(
             composable(AppScreens.CheckoutScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
                 CheckoutScreen(navController, catalogViewModel, addressViewModel, pedidoViewModel, editProfileViewModel)
             }
+
+            // [CORREGIDO] Se pasa el catalogViewModel a FakePaymentScreen
+            composable(
+                route = "${AppScreens.FakePaymentScreen.route}/{orderId}/{totalAmount}",
+                arguments = listOf(
+                    navArgument("orderId") { type = NavType.LongType },
+                    navArgument("totalAmount") { type = NavType.FloatType }
+                )
+            ) { backStackEntry ->
+                val orderId = backStackEntry.arguments?.getLong("orderId") ?: -1L
+                val totalAmount = backStackEntry.arguments?.getFloat("totalAmount")?.toDouble() ?: 0.0
+                FakePaymentScreen(navController, fakePaymentViewModel, catalogViewModel, orderId, totalAmount)
+            }
+            composable(
+                route = "${AppScreens.PaymentResultScreen.route}/{wasSuccessful}",
+                arguments = listOf(navArgument("wasSuccessful") { type = NavType.BoolType })
+            ) { backStackEntry ->
+                val wasSuccessful = backStackEntry.arguments?.getBoolean("wasSuccessful") ?: false
+                PaymentResultScreen(navController, wasSuccessful)
+            }
+
             composable("main_flow", enterTransition = { fadeIn(animationSpec = tween(500)) }) {
                 MainScreen(mainNavController = navController, sessionManager = sessionManager, themeManager = themeManager, catalogViewModel = catalogViewModel)
             }

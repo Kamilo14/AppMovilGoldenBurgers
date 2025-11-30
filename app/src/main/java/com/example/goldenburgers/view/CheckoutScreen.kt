@@ -6,6 +6,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.selection.selectable
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -41,22 +42,45 @@ fun CheckoutScreen(
     val addressState by addressViewModel.uiState.collectAsStateWithLifecycle()
     val pedidoState by pedidoViewModel.uiState.collectAsStateWithLifecycle()
     val profileState by editProfileViewModel.uiState.collectAsStateWithLifecycle()
-    var selectedAddress by remember { mutableStateOf<DireccionCliente?>(null) }
     val context = LocalContext.current
 
-    // Cargar datos de perfil y direcciones
+    val deliveryOptions = listOf(
+        DeliveryOption(id = 2, title = "Retiro en tienda", description = "Sin costo", cost = 0.0),
+        DeliveryOption(id = 1, title = "Delivery", description = "$3.990", cost = 3990.0)
+    )
+    val paymentOptions = listOf(
+        PaymentOption(id = 2, title = "Efectivo"),
+        PaymentOption(id = 3, title = "Mercado Pago")
+    )
+
+    var selectedDelivery by remember { mutableStateOf<DeliveryOption?>(null) }
+    var selectedPayment by remember { mutableStateOf<PaymentOption?>(null) }
+    var selectedAddress by remember { mutableStateOf<DireccionCliente?>(null) }
+    var showCashConfirmDialog by remember { mutableStateOf(false) }
+
+    val totalPedido = catalogState.cartSubtotal + (selectedDelivery?.cost ?: 0.0)
+
     LaunchedEffect(Unit) {
         editProfileViewModel.loadCurrentUser()
         addressViewModel.loadAddresses()
     }
 
-    // Navegar hacia atrás si el pedido se crea con éxito
-    LaunchedEffect(pedidoState.pedidoCreadoExitosamente) {
-        if (pedidoState.pedidoCreadoExitosamente) {
-            Toast.makeText(context, "¡Pedido realizado con éxito!", Toast.LENGTH_LONG).show()
-            catalogViewModel.clearCart()
-            navController.popBackStack()
-            pedidoViewModel.resetPedidoCreado()
+    // [CORREGIDO] Lógica para manejar el resultado de la creación de un pedido
+    LaunchedEffect(pedidoState.ultimoPedidoCreado) {
+        val pedido = pedidoState.ultimoPedidoCreado
+        if (pedido != null) {
+            // Si se pagó en efectivo, el flujo termina aquí.
+            if (pedido.idMetodoPago == 2L) { // 2 = Efectivo
+                Toast.makeText(context, "¡Pedido realizado con éxito!", Toast.LENGTH_LONG).show()
+                catalogViewModel.clearCart()
+                navController.popBackStack()
+            } 
+            // Si se eligió MercadoPago, navegamos a la pantalla de pago
+            else if (pedido.idMetodoPago == 3L) { // 3 = Mercado Pago
+                val total = pedido.montoTotal.toFloat()
+                navController.navigate("${AppScreens.FakePaymentScreen.route}/${pedido.idPedido}/$total")
+            }
+            pedidoViewModel.resetUltimoPedido()
         }
     }
 
@@ -64,10 +88,10 @@ fun CheckoutScreen(
         topBar = { TopAppBar(title = { Text("Finalizar Pedido") }, navigationIcon = { IconButton(onClick = { navController.popBackStack() }) { Icon(Icons.AutoMirrored.Filled.ArrowBack, "Volver") } }) }
     ) { paddingValues ->
         LazyColumn(modifier = Modifier.fillMaxSize().padding(paddingValues).padding(16.dp)) {
+            // ... (El resto del código de la pantalla no cambia) ...
             // Resumen del Pedido
             item {
-                Text("Resumen del Pedido", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
+                SectionTitle("Resumen del Pedido")
                 catalogState.cartItems.forEach {
                     Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                         Text("${it.quantity}x ${it.product.nombreProducto}")
@@ -77,16 +101,23 @@ fun CheckoutScreen(
                 }
                 HorizontalDivider(modifier = Modifier.padding(vertical = 8.dp))
                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Subtotal", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Normal)
+                    Text(catalogState.cartSubtotal.toCurrencyFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Normal)
+                }
+                 Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
+                    Text("Envío", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Normal)
+                    Text((selectedDelivery?.cost ?: 0.0).toCurrencyFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Normal)
+                }
+                Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.SpaceBetween) {
                     Text("Total", style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
-                    Text(catalogState.cartSubtotal.toCurrencyFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
+                    Text(totalPedido.toCurrencyFormat(), style = MaterialTheme.typography.bodyLarge, fontWeight = FontWeight.Bold)
                 }
                 Spacer(Modifier.height(24.dp))
             }
 
-            // [CORREGIDO] Datos del Cliente con etiquetas
+            // Datos de Contacto
             item {
-                Text("Datos de Contacto", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
+                SectionTitle("Datos de Contacto")
                 Card(modifier = Modifier.fillMaxWidth()) {
                     Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         InfoRow(label = "Nombre", value = profileState.nombreCliente)
@@ -102,36 +133,51 @@ fun CheckoutScreen(
                 }
                 Spacer(Modifier.height(24.dp))
             }
-
-            // Selección de Dirección
+            
+            // Tipo de Entrega
             item {
-                Text("Seleccionar Dirección de Envío", style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
-                Spacer(Modifier.height(16.dp))
+                SectionTitle("Tipo de Entrega")
             }
-
-            if (addressState.isLoading) {
-                item { CircularProgressIndicator() }
-            } else if (addressState.addresses.isEmpty()) {
-                item { Text("No tienes direcciones guardadas.") }
-            } else {
-                items(addressState.addresses) { address ->
-                    AddressSelectorCard(address, selectedAddress?.idDireccion == address.idDireccion) {
-                        selectedAddress = address
+            items(deliveryOptions) {
+                SelectableRow(text = it.title, description = it.description, selected = selectedDelivery?.id == it.id) {
+                    selectedDelivery = it
+                    if (it.id == 2L) selectedAddress = null 
+                }
+            }
+            
+            // Selección de Dirección (solo si es Delivery)
+            if (selectedDelivery?.id == 1L) {
+                 item { 
+                     Spacer(Modifier.height(24.dp))
+                     SectionTitle("Dirección de Envío") 
+                 }
+                 if (addressState.isLoading) {
+                     item { CircularProgressIndicator() }
+                 } else if (addressState.addresses.isEmpty()) {
+                     item { Text("No tienes direcciones guardadas.") }
+                 } else {
+                     items(addressState.addresses) {
+                         AddressSelectorCard(it, selectedAddress?.idDireccion == it.idDireccion) { selectedAddress = it }
+                         Spacer(Modifier.height(8.dp))
+                     }
+                 }
+                item {
+                    Spacer(Modifier.height(16.dp))
+                    OutlinedButton(onClick = { navController.navigate(AppScreens.AddressListScreen.route) }, modifier = Modifier.fillMaxWidth()) {
+                        Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text("Editar o añadir direcciones")
                     }
-                    Spacer(Modifier.height(8.dp))
                 }
             }
-
+            
+            // Método de Pago
             item {
-                Spacer(Modifier.height(16.dp))
-                OutlinedButton(
-                    onClick = { navController.navigate(AppScreens.AddressListScreen.route) },
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Icon(Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(18.dp))
-                    Spacer(Modifier.width(8.dp))
-                    Text("Editar o añadir direcciones")
-                }
+                 Spacer(Modifier.height(24.dp))
+                 SectionTitle("Método de Pago")
+            }
+            items(paymentOptions) {
+                SelectableRow(text = it.title, description = null, selected = selectedPayment?.id == it.id) { selectedPayment = it }
             }
 
             // Botón de Confirmar
@@ -139,24 +185,32 @@ fun CheckoutScreen(
                 Spacer(Modifier.height(32.dp))
                 Button(
                     onClick = {
-                        val currentSelectedAddress = selectedAddress
-                        if (currentSelectedAddress != null) {
-                            pedidoViewModel.crearPedido(
-                                items = catalogState.cartItems,
-                                total = catalogState.cartSubtotal,
-                                direccion = currentSelectedAddress
-                            )
+                         val currentSelectedDelivery = selectedDelivery
+                         val currentSelectedPayment = selectedPayment
+                         if (currentSelectedDelivery != null && currentSelectedPayment != null) {
+                            if (currentSelectedDelivery.id == 1L && selectedAddress == null) {
+                                Toast.makeText(context, "Por favor, selecciona una dirección de envío", Toast.LENGTH_SHORT).show()
+                            } else {
+                                // [CORREGIDO] Simplificamos la lógica. Siempre creamos el pedido.
+                                pedidoViewModel.crearPedido(
+                                    items = catalogState.cartItems,
+                                    subtotal = catalogState.cartSubtotal,
+                                    direccion = if (currentSelectedDelivery.id == 1L) selectedAddress else null,
+                                    tipoEntrega = currentSelectedDelivery,
+                                    metodoPago = currentSelectedPayment
+                                )
+                            }
                         } else {
-                            Toast.makeText(context, "Por favor, selecciona una dirección", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(context, "Por favor, completa todos los campos", Toast.LENGTH_SHORT).show()
                         }
                     },
                     modifier = Modifier.fillMaxWidth().height(50.dp),
-                    enabled = selectedAddress != null && !pedidoState.isLoading
+                    enabled = !pedidoState.isLoading
                 ) {
                     if (pedidoState.isLoading) {
                         CircularProgressIndicator(modifier = Modifier.size(24.dp))
                     } else {
-                        Text("Confirmar Pedido")
+                        Text("Continuar con el pago")
                     }
                 }
             }
@@ -170,7 +224,35 @@ fun CheckoutScreen(
     }
 }
 
-// [CORREGIDO] Tarjeta de dirección con etiquetas
+
+
+@Composable
+private fun SectionTitle(title: String) {
+    Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold)
+    Spacer(Modifier.height(16.dp))
+}
+
+@Composable
+private fun SelectableRow(text: String, description: String?, selected: Boolean, onClick: () -> Unit) {
+    Row(
+        modifier = Modifier
+            .fillMaxWidth()
+            .selectable(selected = selected, onClick = onClick)
+            .padding(vertical = 12.dp),
+        verticalAlignment = Alignment.CenterVertically
+    ) {
+        RadioButton(selected = selected, onClick = onClick)
+        Spacer(modifier = Modifier.width(16.dp))
+        Column {
+            Text(text, style = MaterialTheme.typography.bodyLarge)
+            if (description != null) {
+                Text(description, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+            }
+        }
+    }
+}
+
+
 @Composable
 fun AddressSelectorCard(address: DireccionCliente, isSelected: Boolean, onClick: () -> Unit) {
     Card(
@@ -198,20 +280,21 @@ fun AddressSelectorCard(address: DireccionCliente, isSelected: Boolean, onClick:
     }
 }
 
-// [NUEVO] Componente reutilizable para mostrar información con etiqueta
 @Composable
-private fun InfoRow(label: String, value: String) {
-    Column {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            fontWeight = FontWeight.Bold
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.bodyLarge,
-            color = MaterialTheme.colorScheme.onSurface
-        )
+private fun InfoRow(label: String, value: String?) {
+    if (value != null) {
+        Column {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                fontWeight = FontWeight.Bold
+            )
+            Text(
+                text = value,
+                style = MaterialTheme.typography.bodyLarge,
+                color = MaterialTheme.colorScheme.onSurface
+            )
+        }
     }
 }
