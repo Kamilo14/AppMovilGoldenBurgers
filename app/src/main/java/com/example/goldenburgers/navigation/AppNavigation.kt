@@ -14,31 +14,28 @@ import androidx.compose.runtime.getValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.lifecycle.viewmodel.compose.viewModel
+import androidx.navigation.NavType
 import androidx.navigation.compose.NavHost
 import androidx.navigation.compose.composable
 import androidx.navigation.compose.rememberNavController
+import androidx.navigation.navArgument
 import com.example.goldenburgers.view.EditProfileScreen
 import com.example.goldenburgers.model.SessionManager
 import com.example.goldenburgers.model.ThemeManager
+import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.view.*
 import com.example.goldenburgers.viewmodel.*
 
-/**
- * Este es el Composable principal
- * Define todas las pantallas disponibles y gestiona la transición entre ellas.
- * También es el responsable de decidir cuál es la primera pantalla que se debe mostrar.
- */
 @Composable
 fun AppNavigation(
     sessionManager: SessionManager,
     themeManager: ThemeManager,
     authRepository: com.example.goldenburgers.repository.AuthRepository,
-    clienteRepository: com.example.goldenburgers.repository.ClienteRepository
+    clienteRepository: ClienteRepository
 ) {
-    // Crea el NavController principal para todas las operaciones de navegación.
     val navController = rememberNavController()
 
-    // --- Creación de ViewModels con nuevos repositorios ---
+    // --- Creación de ViewModels ---
     val loginViewModel: LoginViewModel = viewModel(
         factory = LoginViewModelFactory(authRepository, clienteRepository, sessionManager)
     )
@@ -46,67 +43,62 @@ fun AppNavigation(
         factory = RegisterViewModelFactory(authRepository)
     )
     val editProfileViewModel: EditProfileViewModel = viewModel(
-        factory = EditProfileViewModelFactory(authRepository, clienteRepository)
+        factory = EditProfileViewModelFactory(authRepository, clienteRepository, sessionManager)
     )
-
-    // ProductRepository ahora recibe sessionManager
     val productRepository = com.example.goldenburgers.model.ProductRepository(sessionManager)
-    
     val catalogViewModel: CatalogViewModel = viewModel(
-        factory = CatalogViewModelFactory(productRepository, sessionManager)
+        factory = CatalogViewModelFactory(productRepository, sessionManager, clienteRepository)
+    )
+    val addressViewModel: AddressViewModel = viewModel(
+        factory = AddressViewModelFactory(clienteRepository, authRepository)
+    )
+    val editAddressViewModel: EditAddressViewModel = viewModel(
+        factory = EditAddressViewModelFactory(clienteRepository, authRepository)
     )
 
     // --- Lógica de Arranque ---
-    // Observa el Flow del SessionManager para saber si hay un usuario logueado.
-    // Se usa un String vacío como estado inicial para poder diferenciar entre tres estados:
-    // 1. "" (vacío): La app está cargando y aún no sabemos si hay sesión.
-    // 2. null: La carga terminó y se confirmó que NO hay sesión.
-    // 3. "user@email.com": La carga terminó y SÍ hay un usuario logueado.
     val loggedInUserEmail by sessionManager.loggedInUserEmailFlow.collectAsState(initial = "")
 
-    // Mientras el estado sea el inicial (String vacío), muestra un indicador de carga.
     val isLoadingSession = loggedInUserEmail == ""
     if (isLoadingSession) {
         Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) { CircularProgressIndicator() }
-        return // No dibuja el resto de la app hasta que la sesión se haya resuelto.
+        return
     }
 
-    // Una vez resuelta la sesión, se decide cuál será la primera pantalla que verá el usuario.
-    val startDestination = if (!loggedInUserEmail.isNullOrBlank()) {
-        "main_flow" // Si hay un usuario, va directo al flujo principal de la app.
-    } else {
-        AppScreens.WelcomeScreen.route // Si no, va a la pantalla de bienvenida.
-    }
+    val startDestination = if (!loggedInUserEmail.isNullOrBlank()) "main_flow" else AppScreens.WelcomeScreen.route
 
     // --- Grafo de Navegación ---
-    // NavHost es el contenedor que alojará todas las pantallas de la aplicación.
     NavHost(navController = navController, startDestination = startDestination) {
-        // Se define unas animaciones de transición estándar para que el cambio entre pantallas sea fluido.
         val slideDuration = 300
         val slideIn = slideInHorizontally(initialOffsetX = { it }, animationSpec = tween(slideDuration))
         val slideOut = slideOutHorizontally(targetOffsetX = { -it }, animationSpec = tween(slideDuration))
-        val popIn = slideInHorizontally(initialOffsetX = { -it }, animationSpec = tween(slideDuration))
-        val popOut = slideOutHorizontally(targetOffsetX = { it }, animationSpec = tween(slideDuration))
 
-        // SE define cada una de las pantallas como un destino de navegación.
         composable(AppScreens.WelcomeScreen.route) { WelcomeScreen(navController) }
         composable(AppScreens.LoginScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
-            LoginScreen(navController, sessionManager, loginViewModel)
+            LoginScreen(navController, loginViewModel)
         }
 
-        // --- Flujo de Registro Multi-paso ---
+        // Flujo de Registro
         composable(AppScreens.RegisterStep1Screen.route) { RegisterStep1Screen(navController, registerViewModel) }
         composable(AppScreens.RegisterStep2Screen.route) { RegisterStep2Screen(navController, registerViewModel) }
         composable(AppScreens.RegisterStep3Screen.route) { RegisterStep3Screen(navController, registerViewModel) }
         composable(AppScreens.RegisterStep5Screen.route) { RegisterStep5Screen(navController, registerViewModel, sessionManager, clienteRepository) }
 
-        // --- Pantallas de Usuario ---
+        // Pantallas de Usuario
         composable(AppScreens.EditProfileScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
             EditProfileScreen(navController = navController, viewModel = editProfileViewModel)
         }
+        composable(AppScreens.AddressListScreen.route, enterTransition = { slideIn }, exitTransition = { slideOut }) {
+            AddressListScreen(navController = navController, viewModel = addressViewModel)
+        }
+        composable(
+            route = "${AppScreens.EditAddressScreen.route}/{addressId}",
+            arguments = listOf(navArgument("addressId") { type = NavType.LongType; defaultValue = -1L })
+        ) { backStackEntry ->
+            val addressId = backStackEntry.arguments?.getLong("addressId") ?: -1L
+            EditAddressScreen(navController = navController, viewModel = editAddressViewModel, addressId = addressId)
+        }
 
-        // --- Flujo Principal de la App (Post-Login) ---
-        // Este es un destino especial que lanza la MainScreen, la cual contiene la barra de navegación inferior.
         composable("main_flow", enterTransition = { fadeIn(animationSpec = tween(500)) }) {
             MainScreen(mainNavController = navController, sessionManager = sessionManager, themeManager = themeManager, catalogViewModel = catalogViewModel)
         }

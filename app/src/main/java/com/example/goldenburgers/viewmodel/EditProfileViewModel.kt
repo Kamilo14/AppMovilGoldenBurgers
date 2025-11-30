@@ -37,7 +37,9 @@ class EditProfileViewModel(
     val uiState: StateFlow<EditProfileUiState> = _uiState.asStateFlow()
 
     /**
-     * Cargar datos del cliente actual desde el backend
+     * [CORREGIDO] Cargar datos del cliente actual desde el backend.
+     * La lógica de manejo de tokens es innecesaria aquí, ya que el ClienteRepository
+     * ya está configurado para usar el token guardado en SessionManager.
      */
     fun loadCurrentUser() {
         _uiState.update { it.copy(isLoading = true) }
@@ -46,13 +48,7 @@ class EditProfileViewModel(
             val firebaseUser = authRepository.getCurrentUser()
 
             if (firebaseUser != null) {
-                // Asegurarnos de tener un token fresco antes de llamar al repositorio
-                val token = authRepository.getAuthToken()
-                if (token != null) {
-                    // Guardar el token fresco en SessionManager para que el Repositorio lo use
-                    sessionManager.saveUserSession(firebaseUser.email ?: "", token)
-                }
-
+                // El ClienteRepository se encargará de usar el token de sesión correcto.
                 val result = clienteRepository.obtenerClientePorFirebaseUid(firebaseUser.uid)
 
                 result.fold(
@@ -68,10 +64,12 @@ class EditProfileViewModel(
                         }
                     },
                     onFailure = {
+                        // Aquí podrías mostrar un mensaje de error si lo deseas
                         _uiState.update { it.copy(isLoading = false) }
                     }
                 )
             } else {
+                // No hay usuario logueado
                 _uiState.update { it.copy(isLoading = false) }
             }
         }

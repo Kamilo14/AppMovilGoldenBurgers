@@ -20,12 +20,10 @@ import com.example.goldenburgers.model.data.CiudadesDisponibles
 import com.example.goldenburgers.navigation.AppScreens
 import com.example.goldenburgers.repository.ClienteRepository
 import com.example.goldenburgers.viewmodel.RegisterViewModel
-import kotlinx.coroutines.launch
 
 /**
- * Esta es la quinta y última pantalla del flujo de registro.
- * Su objetivo es mostrarle al usuario un resumen de toda la información que ha introducido
- * para que pueda verificarla antes de confirmar la creación de su cuenta.
+ * [CORREGIDO] La pantalla final de registro. Ahora solo notifica al ViewModel
+ * y no contiene lógica de sesión.
  */
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -36,7 +34,6 @@ fun RegisterStep5Screen(
     clienteRepository: ClienteRepository
 ) {
     val uiState by viewModel.uiState.collectAsStateWithLifecycle()
-    val scope = rememberCoroutineScope()
     val context = LocalContext.current
 
     Scaffold(
@@ -52,7 +49,6 @@ fun RegisterStep5Screen(
                 modifier = Modifier.fillMaxSize().padding(horizontal = 32.dp),
                 horizontalAlignment = Alignment.CenterHorizontally
             ) {
-                // La barra de progreso está al 100% para indicar que este es el último paso.
                 LinearProgressIndicator(progress = { 1.0f }, modifier = Modifier.fillMaxWidth().padding(vertical = 16.dp))
 
                 Text("¡Todo listo!", style = MaterialTheme.typography.headlineSmall, textAlign = TextAlign.Center)
@@ -60,8 +56,6 @@ fun RegisterStep5Screen(
                 Text("Verifica la información antes de finalizar.", style = MaterialTheme.typography.bodyLarge, textAlign = TextAlign.Center)
                 Spacer(Modifier.height(32.dp))
 
-                // He usado una `LazyColumn` aquí por si en el futuro el resumen es muy largo
-                // y necesita hacer scroll. Es una buena práctica para listas de contenido variable.
                 LazyColumn(modifier = Modifier.weight(1f).fillMaxWidth()) {
                     item { SummarySectionTitle("1. Acceso y Contacto") }
                     item { SummaryItem("Email", uiState.email) }
@@ -78,24 +72,19 @@ fun RegisterStep5Screen(
                     item { Spacer(Modifier.height(24.dp)) }
                 }
 
-                // El botón final que dispara la acción de registrar al usuario.
                 Button(
                     onClick = {
-                        // La UI simplemente le notifica al ViewModel que el usuario ha confirmado.
+                        // La UI notifica al ViewModel, pasándole las dependencias que necesita.
                         viewModel.onRegisterClicked(
                             clienteRepository = clienteRepository,
+                            sessionManager = sessionManager,
                             onSuccess = {
-                                // Si el registro es exitoso, lanzo una corutina para guardar la sesión
-                                // y navegar a la pantalla principal.
-                                scope.launch {
-                                    sessionManager.saveUserSession(uiState.email)
-                                    navController.navigate("main_flow") {
-                                        popUpTo(AppScreens.WelcomeScreen.route) { inclusive = true }
-                                    }
+                                // El ViewModel ya se encargó de guardar la sesión. Aquí solo navegamos.
+                                navController.navigate("main_flow") {
+                                    popUpTo(AppScreens.WelcomeScreen.route) { inclusive = true }
                                 }
                             },
                             onError = { errorMessage ->
-                                // Mostrar error al usuario
                                 Toast.makeText(context, errorMessage, Toast.LENGTH_LONG).show()
                             }
                         )
@@ -104,10 +93,7 @@ fun RegisterStep5Screen(
                     enabled = !uiState.isLoading
                 ) {
                     if (uiState.isLoading) {
-                        CircularProgressIndicator(
-                            modifier = Modifier.size(24.dp),
-                            color = MaterialTheme.colorScheme.onPrimary
-                        )
+                        CircularProgressIndicator(modifier = Modifier.size(24.dp), color = MaterialTheme.colorScheme.onPrimary)
                     } else {
                         Text("Confirmar Registro", style = MaterialTheme.typography.labelLarge)
                     }
@@ -118,19 +104,11 @@ fun RegisterStep5Screen(
     }
 }
 
-/**
- * Un pequeño Composable auxiliar que he creado para los títulos de las secciones.
- * Ayuda a mantener el código principal más limpio y es reutilizable.
- */
 @Composable
 private fun SummarySectionTitle(title: String) {
     Text(title, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.Bold, color = MaterialTheme.colorScheme.primary, modifier = Modifier.fillMaxWidth().padding(top = 16.dp, bottom = 4.dp))
 }
 
-/**
- * Otro Composable auxiliar para mostrar cada línea del resumen (etiqueta y valor).
- * Esto evita repetir el mismo `Row` y `Text` una y otra vez.
- */
 @Composable
 private fun SummaryItem(label: String, value: String) {
     Row(modifier = Modifier.fillMaxWidth().padding(vertical = 6.dp), horizontalArrangement = Arrangement.SpaceBetween, verticalAlignment = Alignment.CenterVertically) {

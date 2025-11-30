@@ -7,7 +7,6 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
@@ -23,7 +22,6 @@ import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import coil.compose.AsyncImage
 import coil.request.ImageRequest
 import com.example.goldenburgers.R
-import com.example.goldenburgers.model.data.Producto
 import com.example.goldenburgers.viewmodel.CatalogViewModel
 import com.example.goldenburgers.viewmodel.toCurrencyFormat
 import com.example.goldenburgers.viewmodel.CartItem
@@ -53,7 +51,8 @@ fun CartScreen(catalogViewModel: CatalogViewModel, onCheckoutClick: () -> Unit) 
                 }
             }
             Spacer(modifier = Modifier.height(16.dp))
-            Divider()
+            // [CORREGIDO] Se usa HorizontalDivider en lugar del obsoleto Divider
+            HorizontalDivider()
             Spacer(modifier = Modifier.height(16.dp))
             Row(
                 modifier = Modifier.fillMaxWidth(),
@@ -92,8 +91,8 @@ fun CartItemRow(item: CartItem, viewModel: CatalogViewModel) {
                     model = ImageRequest.Builder(LocalContext.current)
                         .data(item.product.imagenUrl)
                         .crossfade(true)
-                        .placeholder(R.drawable.golden)
-                        .error(R.drawable.golden)
+                        .placeholder(R.drawable.goldencarga)
+                        .error(R.drawable.goldencarga)
                         .build(),
                     contentDescription = item.product.nombreProducto,
                     modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)),
@@ -101,7 +100,7 @@ fun CartItemRow(item: CartItem, viewModel: CatalogViewModel) {
                 )
             } else {
                 Image(
-                    painter = painterResource(id = R.drawable.golden),
+                    painter = painterResource(id = R.drawable.goldencarga),
                     contentDescription = item.product.nombreProducto,
                     modifier = Modifier.size(64.dp).clip(RoundedCornerShape(8.dp)),
                     contentScale = ContentScale.Crop

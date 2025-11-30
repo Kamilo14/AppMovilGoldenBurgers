@@ -6,7 +6,6 @@ package com.example.goldenburgers.navigation
 sealed class AppScreens(val route: String) {
 
     // --- Pantallas del Flujo de Autenticación y Registro ---
-    // Estas son las pantallas que ve el usuario antes de iniciar sesión.
     object WelcomeScreen : AppScreens("welcome_screen")
     object LoginScreen : AppScreens("login_screen")
     object RegisterStep1Screen : AppScreens("register_step1_screen")
@@ -15,11 +14,13 @@ sealed class AppScreens(val route: String) {
     object RegisterStep5Screen : AppScreens("register_step5_screen")
 
     // --- Pantallas de Gestión de Usuario ---
-    // Pantallas a las que se accede una vez que el usuario ya está logueado.
     object EditProfileScreen : AppScreens("edit_profile_screen")
+    object AddressListScreen : AppScreens("address_list_screen")
+    // [NUEVO] Pantalla para crear/editar una dirección.
+    // Acepta un ID opcional. Si no se pasa, es para crear una nueva.
+    object EditAddressScreen : AppScreens("edit_address_screen")
 
     // --- Pantallas Principales (dentro del BottomNav) ---
-    // Estas son las rutas para las pestañas de la barra de navegación inferior.
     object HomeScreen : AppScreens("home_screen")
     object FavoritesScreen : AppScreens("favorites_screen")
     object CartScreen : AppScreens("cart_screen")
