@@ -4,7 +4,7 @@ import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.navigation.compose.rememberNavController
-import com.example.goldenburgers.ui.theme.GoldenBurgersTheme
+import com.example.goldenburgers.ui.theme.GolgerBurguerTheme
 import org.junit.Rule
 import org.junit.Test
 
@@ -22,8 +22,8 @@ class WelcomeScreenTest {
     fun elBotonDeLoginDeberiaMostrarseEnLaPantalla() {
         // Arrange: Preparamos el entorno del test
         composeTestRule.setContent {
-            // Usamos nuestro tema para que el componente se vea correctamente
-            GoldenBurgersTheme {
+            // [CORRECCIÓN] Se usa el nombre correcto del tema: GolgerBurguerTheme
+            GolgerBurguerTheme {
                 // Creamos un NavController falso porque el componente lo requiere
                 val navController = rememberNavController()
                 WelcomeScreen(navController = navController)
