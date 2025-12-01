@@ -17,13 +17,15 @@ class FakePaymentViewModelTest : ShouldSpec() {
 
     private lateinit var pedidoRepository: PedidoRepository
     private lateinit var viewModel: FakePaymentViewModel
-
     private val testDispatcher = UnconfinedTestDispatcher()
 
     init {
         beforeTest {
             Dispatchers.setMain(testDispatcher)
-            pedidoRepository = mockk()
+            pedidoRepository = mockk(relaxed = true)
+            // Comportamiento por defecto para evitar errores si no se define en el test específico
+            coEvery { pedidoRepository.cambiarEstadoPedido(any(), any()) } returns Result.success(mockk())
+            
             viewModel = FakePaymentViewModel(pedidoRepository)
         }
 
@@ -31,50 +33,69 @@ class FakePaymentViewModelTest : ShouldSpec() {
             Dispatchers.resetMain()
         }
 
-        context("Procesamiento de Pago") {
-            should("actualizar el estado a SUCCESS si el número de tarjeta es correcto") {
+        context("Procesamiento de Pagos") {
+            
+            should("procesar pago exitosamente si el número de tarjeta es correcto") {
                 // Arrange
-                val magicCardNumber = "1111-2222-3333-4444"
-                val orderId = 99L
-                // El estado final para un pago exitoso es 2L
-                val successStateId = 2L 
-
-                coEvery { pedidoRepository.cambiarEstadoPedido(orderId, successStateId) } returns Result.success(mockk())
+                val magicCardNumber = "1111222233334444"
+                val orderId = 1L
+                
+                // Esperamos que si la tarjeta es correcta, se intente pasar al estado 2 (PAGADO)
+                coEvery { pedidoRepository.cambiarEstadoPedido(orderId, 2L) } returns Result.success(mockk())
 
                 // Act
                 viewModel.processPayment(magicCardNumber, orderId)
-
+                
                 // Assert
                 val state = viewModel.uiState.value
                 state.isLoading shouldBe false
                 state.paymentResult shouldBe PaymentResult.SUCCESS
-                coVerify(exactly = 1) { pedidoRepository.cambiarEstadoPedido(orderId, successStateId) }
+                
+                coVerify(exactly = 1) { pedidoRepository.cambiarEstadoPedido(orderId, 2L) }
             }
-
-            should("actualizar el estado a FAILURE si el número de tarjeta es incorrecto") {
+            
+            should("procesar pago como fallido si el número de tarjeta es incorrecto") {
                 // Arrange
-                val wrongCardNumber = "0000-0000-0000-0000"
-                val orderId = 101L
-                // El estado final para un pago fallido/cancelado es 7L
-                val failureStateId = 7L 
-
-                coEvery { pedidoRepository.cambiarEstadoPedido(orderId, failureStateId) } returns Result.success(mockk())
+                val wrongCardNumber = "0000000000000000"
+                val orderId = 1L
+                
+                // Esperamos que si la tarjeta es incorrecta, se intente pasar al estado 7 (CANCELADO/FALLIDO)
+                coEvery { pedidoRepository.cambiarEstadoPedido(orderId, 7L) } returns Result.success(mockk())
 
                 // Act
                 viewModel.processPayment(wrongCardNumber, orderId)
-
+                
                 // Assert
                 val state = viewModel.uiState.value
                 state.isLoading shouldBe false
                 state.paymentResult shouldBe PaymentResult.FAILURE
-                coVerify(exactly = 1) { pedidoRepository.cambiarEstadoPedido(orderId, failureStateId) }
+                
+                coVerify(exactly = 1) { pedidoRepository.cambiarEstadoPedido(orderId, 7L) }
             }
 
-            should("resetPaymentResult debería poner el resultado a nulo") {
-                // Arrange: Forzamos un estado inicial
-                viewModel.processPayment("1111-2222-3333-4444", 1L)
+            should("manejar error del repositorio") {
+                // Arrange
+                val magicCardNumber = "1111222233334444"
+                val orderId = 1L
+                val errorMsg = "Error de red simulado"
+                
+                // Simulamos un fallo en la llamada a la API
+                coEvery { pedidoRepository.cambiarEstadoPedido(any(), any()) } returns Result.failure(Exception(errorMsg))
 
-                // Act: Reseteamos el estado
+                // Act
+                viewModel.processPayment(magicCardNumber, orderId)
+                
+                // Assert
+                val state = viewModel.uiState.value
+                state.isLoading shouldBe false
+                state.error shouldBe errorMsg
+            }
+
+            should("resetPaymentResult debería limpiar el resultado del pago") {
+                // Arrange: Forzamos un estado (simulando pago)
+                viewModel.processPayment("1111222233334444", 1L)
+                
+                // Act
                 viewModel.resetPaymentResult()
 
                 // Assert

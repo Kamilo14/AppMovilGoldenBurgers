@@ -1,4 +1,3 @@
-
 package com.example.goldenburgers.view
 
 import androidx.compose.ui.test.assertIsDisplayed

@@ -44,14 +44,18 @@ class LoginViewModelTest : ShouldSpec() {
                     every { email } returns "test@test.com"
                 }
                 val fakeFirebaseToken = "fake-firebase-token"
-                // [CORRECCIÓN CLAVE] exchangeToken devuelve un Result<String>, no un objeto.
                 val fakeInternalToken = "fake-internal-jwt"
 
                 // Simulamos la cadena completa de llamadas exitosas
                 coEvery { authRepository.login(any(), any()) } returns Result.success(usuarioFalso)
                 coEvery { authRepository.getFirebaseToken() } returns fakeFirebaseToken
                 coEvery { authRepository.exchangeToken(fakeFirebaseToken) } returns Result.success(fakeInternalToken)
-                coEvery { clienteRepository.obtenerClientePorFirebaseUid(any()) } returns Result.success(mockk())
+                // [CORRECCIÓN] El repositorio de cliente espera un objeto Cliente, no un mockk genérico si vamos a usarlo después.
+                // Pero en LoginViewModel solo nos importa que sea Result.success para continuar.
+                // El problema podría ser si el LoginViewModel intenta acceder a propiedades del cliente devuelto.
+                // En el código real: `clienteResult.fold(...)` -> onSuccess no usa el valor devuelto, solo llama a `onSuccess()`.
+                // Así que un mockk() simple dentro de Result.success() debería funcionar.
+                coEvery { clienteRepository.obtenerClientePorFirebaseUid(any()) } returns Result.success(mockk(relaxed = true))
 
                 var fueExitoso = false
 

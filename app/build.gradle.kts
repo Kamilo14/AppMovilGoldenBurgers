@@ -41,10 +41,24 @@ android {
     buildFeatures {
         compose = true
     }
-    // [NUEVO] Configuración para usar JUnit5 con Kotest
+    
     testOptions {
         unitTests.all {
             it.useJUnitPlatform()
+        }
+        // [IMPORTANTE] Solución para conflictos de Mockk en Android
+        packaging {
+            resources {
+                excludes += "META-INF/LICENSE.md"
+                excludes += "META-INF/LICENSE-notice.md"
+                excludes += "META-INF/LICENSE"
+                excludes += "META-INF/LICENSE.txt"
+                excludes += "META-INF/NOTICE"
+                excludes += "META-INF/NOTICE.txt"
+            }
+            jniLibs {
+                useLegacyPackaging = true
+            }
         }
     }
 }
@@ -91,20 +105,35 @@ dependencies {
     // --- Location Services ---
     implementation("com.google.android.gms:play-services-location:21.0.1")
 
-    // --- Dependencias de Testeo ---
-    testImplementation(libs.junit)
+    // --- Dependencias de Testeo Instrumentado (androidTest) ---
+    // Estas son las que usa LoginScreenTest.kt
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(platform(libs.androidx.compose.bom))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
-    debugImplementation(libs.androidx.compose.ui.tooling)
-    debugImplementation(libs.androidx.compose.ui.test.manifest)
     
-    // [NUEVO] Dependencias para Pruebas Unitarias Modernas
+    // [SOLUCIÓN] Mockk para Android
+    androidTestImplementation("io.mockk:mockk-android:1.13.8")
+    
+    // [OPCIONAL] Si quieres usar Mockito en Android
+    androidTestImplementation("org.mockito:mockito-android:5.10.0")
+    androidTestImplementation("org.mockito:mockito-core:5.10.0")
+
+    // --- Dependencias de Testeo Unitario (test) ---
+    // Estas solo funcionan en la carpeta src/test
+    testImplementation(libs.junit)
+    
+    // JUnit 5 y Kotest
     testImplementation("io.kotest:kotest-runner-junit5:5.8.0")
     testImplementation("io.kotest:kotest-assertions-core:5.8.0")
+    testImplementation("org.junit.jupiter:junit-jupiter:5.10.0")
+    
+    // Mockk para Unit Tests
     testImplementation("io.mockk:mockk:1.13.8")
+    
     testImplementation("org.jetbrains.kotlinx:kotlinx-coroutines-test:1.7.3")
-}
 
-// Nota: Se eliminaron las dependencias de Room ya que ahora todo se maneja a través del backend
+    // --- Debug ---
+    debugImplementation(libs.androidx.compose.ui.tooling)
+    debugImplementation(libs.androidx.compose.ui.test.manifest)
+}

@@ -33,7 +33,14 @@ class EditAddressViewModelTest : ShouldSpec() {
             Dispatchers.setMain(testDispatcher)
             clienteRepository = mockk(relaxed = true)
             authRepository = mockk(relaxed = true)
+            
+            // [CORRECCIÓN] Definir explícitamente el retorno de obtenerCiudades para evitar ClassCastException
+            // en el init o loadInitialData del ViewModel al usar mocks relajados con corrutinas.
+            coEvery { clienteRepository.obtenerCiudades() } returns Result.success(emptyList())
+            
             viewModel = EditAddressViewModel(clienteRepository, authRepository)
+            // No llamamos a loadInitialData aquí si ya se llama en el init del ViewModel real, 
+            // pero como en tu código lo sacamos del init, lo llamamos manual.
             viewModel.loadInitialData()
         }
 
@@ -45,7 +52,6 @@ class EditAddressViewModelTest : ShouldSpec() {
             should("debería rellenar el estado con los datos de una dirección existente") {
                 // Arrange
                 val fakeCiudad = Ciudad(1L, "Viña del Mar")
-                // [CORRECCIÓN CLAVE 1] Se usa el constructor correcto con los parámetros en orden
                 val fakeAddress = DireccionCliente(10L, 1L, fakeCiudad, "Calle Falsa 123", "Casa")
                 val fakeUsuario = Usuario("uid", "email", Rol(3, "C"), "fecha")
                 val fakeCliente = Cliente(1L, fakeUsuario, "user", "phone", listOf(fakeAddress))
@@ -67,14 +73,13 @@ class EditAddressViewModelTest : ShouldSpec() {
         context("Guardar Dirección") {
             should("debería llamar a 'actualizarDireccion' cuando se guarda una dirección existente") {
                 // Arrange
-                // [CORRECCIÓN CLAVE 2] Se simula la carga de datos para poner el ViewModel en un estado inicial válido
                 val fakeCiudad = Ciudad(1L, "Viña del Mar")
                 val fakeAddress = DireccionCliente(10L, 1L, fakeCiudad, "Calle Vieja 123", "Casa")
                 val fakeUsuario = Usuario("uid", "email", Rol(3, "C"), "fecha")
                 val fakeCliente = Cliente(1L, fakeUsuario, "user", "phone", listOf(fakeAddress))
                 
                 coEvery { clienteRepository.currentCliente } returns MutableStateFlow(fakeCliente)
-                viewModel.loadAddress(10L) // Carga la dirección, estableciendo isNewAddress = false
+                viewModel.loadAddress(10L) 
 
                 coEvery { clienteRepository.actualizarDireccion(any(), any(), any(), any()) } returns Result.success(mockk())
 
@@ -93,7 +98,7 @@ class EditAddressViewModelTest : ShouldSpec() {
                 val fakeCliente = Cliente(1L, fakeUsuario, "user", "phone", emptyList())
                 
                 coEvery { clienteRepository.currentCliente } returns MutableStateFlow(fakeCliente)
-                viewModel.loadAddress(-1L) // Carga el modo "nueva dirección"
+                viewModel.loadAddress(-1L) 
 
                 coEvery { clienteRepository.crearDireccion(any(), any(), any(), any()) } returns Result.success(mockk())
 

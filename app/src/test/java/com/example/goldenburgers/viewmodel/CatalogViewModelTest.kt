@@ -38,6 +38,16 @@ class CatalogViewModelTest : ShouldSpec() {
             productRepository = mockk(relaxed = true)
             sessionManager = mockk(relaxed = true)
             clienteRepository = mockk(relaxed = true)
+            
+            // [CORRECCIÓN CRÍTICA]
+            // Configuramos los mocks para que los Flows emitan al menos un valor por defecto.
+            // Esto evita la excepción "NoSuchElementException: Expected at least one element"
+            // que ocurre cuando se llama a .first() sobre un Flow vacío.
+            coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf(null)
+            every { clienteRepository.currentCliente } returns MutableStateFlow(null)
+            every { productRepository.allProducts } returns flowOf(emptyList())
+            every { productRepository.favoriteProducts } returns flowOf(emptyList())
+
             viewModel = CatalogViewModel(productRepository, sessionManager, clienteRepository)
         }
 
@@ -108,9 +118,12 @@ class CatalogViewModelTest : ShouldSpec() {
             should("loadInitialData debería cargar productos y favoritos") {
                 val fakeProducts = listOf(Producto(1L, 1L, "P1", "d", 1.0, null, 1, "c"))
                 val fakeFavorites = listOf(Producto(2L, 1L, "P2", "d", 2.0, null, 1, "c"))
+                // Sobrescribimos los mocks genéricos con datos específicos para este test
                 every { productRepository.allProducts } returns flowOf(fakeProducts)
                 every { productRepository.favoriteProducts } returns flowOf(fakeFavorites)
+                
                 viewModel.loadInitialData()
+                
                 viewModel.uiState.value.products shouldBe fakeProducts
                 viewModel.uiState.value.favorites shouldBe fakeFavorites
             }
@@ -119,14 +132,18 @@ class CatalogViewModelTest : ShouldSpec() {
                 val fakeCliente = Cliente(1L, Usuario("uid", "t@t.com", Rol(3, "C"), "f"), "Test User", "p", emptyList())
                 coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf("t@t.com")
                 every { clienteRepository.currentCliente } returns MutableStateFlow(fakeCliente)
+                
                 viewModel.loadUserName()
+                
                 viewModel.uiState.value.userName shouldBe "Test User"
             }
 
             should("loadUserName debería usar el email si el cliente no existe") {
                 coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf("no-cliente@test.com")
                 every { clienteRepository.currentCliente } returns MutableStateFlow(null)
+                
                 viewModel.loadUserName()
+                
                 viewModel.uiState.value.userName shouldBe "no-cliente"
             }
         }
@@ -156,11 +173,9 @@ class CatalogViewModelTest : ShouldSpec() {
                 viewModel.uiState.value shouldBe initialState
             }
 
-            // [NUEVO] Test para el camino de error de los flows
             should("no crashear si la carga de productos falla") {
                 every { productRepository.allProducts } returns flow { throw Exception("DB Error") }
                 viewModel.loadInitialData()
-                // La aserción es que no crashea. El estado de products se mantendrá vacío.
                 viewModel.uiState.value.products.isEmpty() shouldBe true
             }
             
@@ -170,7 +185,6 @@ class CatalogViewModelTest : ShouldSpec() {
                 viewModel.uiState.value.favorites.isEmpty() shouldBe true
             }
             
-            // [NUEVO] Test para el caso de email nulo/vacío
             should("no hacer nada si el email del usuario es nulo") {
                  coEvery { sessionManager.loggedInUserEmailFlow } returns flowOf(null)
                  val initialState = viewModel.uiState.value
